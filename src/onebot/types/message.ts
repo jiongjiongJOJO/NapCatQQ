@@ -17,14 +17,12 @@ export interface OB11Message {
     self_id?: string;
     time: number;
     message_id: string;
-    message_seq: string; // 和message_id一样
-    real_id: string
     user_id: string;
     group_id?: string; // 群组ID
     message_type: 'private' | 'group';
     sub_type?: 'friend' | 'group' | 'normal';
     sender: OB11Sender;
-    message: OB11MessageData[] | string;
+    message: OB11MessageData[];
     message_format: 'array' | 'string';
     font: number;
     post_type?: EventType;
