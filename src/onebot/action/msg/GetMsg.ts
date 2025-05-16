@@ -39,8 +39,6 @@ class GetMsg extends OneBotAction<Payload, OB11Message> {
         if (!retMsg) throw Error('消息为空');
         try {
             retMsg.message_id = MessageUnique.getOutputData(peer, msg.msgId, msg.msgSeq)!;
-            retMsg.message_seq = retMsg.message_id;
-            retMsg.real_id = retMsg.message_id;
         } catch {
             // ignored
         }

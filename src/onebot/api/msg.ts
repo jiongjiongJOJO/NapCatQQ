@@ -950,8 +950,6 @@ export class OneBotMsgApi {
             user_id: msg.senderUin,
             time: parseInt(msg.msgTime) || Date.now(),
             message_id: msg.id!,
-            message_seq: msg.id!,
-            real_id: msg.id!,
             real_seq: msg.msgSeq,
             message_type: msg.chatType == ChatType.KCHATTYPEGROUP ? 'group' : 'private',
             sender: {

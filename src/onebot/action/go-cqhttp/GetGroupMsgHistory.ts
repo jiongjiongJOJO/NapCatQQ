@@ -12,7 +12,7 @@ interface Response {
 
 const SchemaData = Type.Object({
     group_id: Type.String(),
-    message_seq: Type.Optional(Type.String()),
+    message_id: Type.Optional(Type.String()),
     count: Type.Number({ default: 20 }),
     reverseOrder: Type.Boolean({ default: false })
 });
@@ -27,12 +27,12 @@ export default class GoCQHTTPGetGroupMsgHistory extends OneBotAction<Payload, Re
 
     async _handle(payload: Payload, _adapter: string, config: NetworkAdapterConfig): Promise<Response> {
         const peer: Peer = { chatType: ChatType.KCHATTYPEGROUP, peerUid: payload.group_id.toString() };
-        const hasMessageSeq = !payload.message_seq ? !!payload.message_seq : !(payload.message_seq?.toString() === '' || payload.message_seq?.toString() === '0');
+        const hasMessageSeq = !payload.message_id ? !!payload.message_id : !(payload.message_id?.toString() === '' || payload.message_id?.toString() === '0');
         //拉取消息
-        const startMsgId = hasMessageSeq ? (MessageUnique.getInnerData(payload.message_seq!)?.MsgId ?? payload.message_seq!.toString()) : '0';
+        const startMsgId = hasMessageSeq ? (MessageUnique.getInnerData(payload.message_id!)?.MsgId ?? payload.message_id!.toString()) : '0';
         const msgList = hasMessageSeq ?
             (await this.core.apis.MsgApi.getMsgHistory(peer, startMsgId, +payload.count, payload.reverseOrder)).msgList : (await this.core.apis.MsgApi.getAioFirstViewLatestMsgs(peer, +payload.count)).msgList;
-        if (msgList.length === 0) throw new Error(`消息${payload.message_seq}不存在`);
+        if (msgList.length === 0) throw new Error(`消息${payload.message_id}不存在`);
         //转换序号
         await Promise.all(msgList.map(async msg => {
             msg.id = MessageUnique.getOutputData({ guildId: '', chatType: msg.chatType, peerUid: msg.peerUid }, msg.msgId, msg.msgSeq);
