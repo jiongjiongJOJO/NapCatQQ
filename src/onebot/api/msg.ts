@@ -94,15 +94,16 @@ export class OneBotMsgApi {
                 };
             } else {
                 let qq: string = 'all';
+                const { atNtUid, atUid, content } = element;
                 if (element.atType !== NTMsgAtType.ATTYPEALL) {
-                    const { atNtUid, atUid } = element;
+
                     qq = !atUid || atUid === '0' ? await this.core.apis.UserApi.getUinByUidV2(atNtUid) : String(Number(atUid) >>> 0);
                 }
                 return {
                     type: OB11MessageDataType.at,
                     data: {
-                        qq: qq,
-                        // name: content.slice(1);
+                        id: qq,
+                        name: content.slice(1)
                     },
                 };
             }
@@ -514,7 +515,7 @@ export class OneBotMsgApi {
             },
         }),
 
-        [OB11MessageDataType.at]: async ({ data: { qq: atQQ } }, context) => {
+        [OB11MessageDataType.at]: async ({ data: { id: atQQ } }, context) => {
             function at(atUid: string, atNtUid: string, atType: NTMsgAtType, atName: string): SendTextElement {
                 return {
                     elementType: ElementType.TEXT,
@@ -936,7 +937,7 @@ export class OneBotMsgApi {
 
         const validSegments = await this.parseMessageSegments(msg, parseMultMsg);
         resMsg.message = validSegments;
-        return {  arrayMsg: resMsg };
+        return { arrayMsg: resMsg };
     }
 
     private initializeMessage(msg: RawMessage): OB11Message {
@@ -1070,16 +1071,16 @@ export class OneBotMsgApi {
         const calculateTotalSize = async (elements: SendMessageElement[]): Promise<number> => {
             const sizePromises = elements.map(async element => {
                 switch (element.elementType) {
-                case ElementType.PTT:
-                    return (await fsPromise.stat(element.pttElement.filePath)).size;
-                case ElementType.FILE:
-                    return (await fsPromise.stat(element.fileElement.filePath)).size;
-                case ElementType.VIDEO:
-                    return (await fsPromise.stat(element.videoElement.filePath)).size;
-                case ElementType.PIC:
-                    return (await fsPromise.stat(element.picElement.sourcePath)).size;
-                default:
-                    return 0;
+                    case ElementType.PTT:
+                        return (await fsPromise.stat(element.pttElement.filePath)).size;
+                    case ElementType.FILE:
+                        return (await fsPromise.stat(element.fileElement.filePath)).size;
+                    case ElementType.VIDEO:
+                        return (await fsPromise.stat(element.videoElement.filePath)).size;
+                    case ElementType.PIC:
+                        return (await fsPromise.stat(element.picElement.sourcePath)).size;
+                    default:
+                        return 0;
                 }
             });
             const sizes = await Promise.all(sizePromises);
@@ -1169,16 +1170,16 @@ export class OneBotMsgApi {
 
     groupChangDecreseType2String(type: number): GroupDecreaseSubType {
         switch (type) {
-        case 130:
-            return 'leave';
-        case 131:
-            return 'kick';
-        case 3:
-            return 'kick_me';
-        case 129:
-            return 'disband';
-        default:
-            return 'kick';
+            case 130:
+                return 'leave';
+            case 131:
+                return 'kick';
+            case 3:
+                return 'kick_me';
+            case 129:
+                return 'disband';
+            default:
+                return 'kick';
         }
     }
 

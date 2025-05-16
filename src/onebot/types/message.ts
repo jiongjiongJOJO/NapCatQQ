@@ -143,7 +143,7 @@ export interface OB11MessageVideo extends OB11MessageFileBase {
 export interface OB11MessageAt {
     type: OB11MessageDataType.at;
     data: {
-        qq: string; // `${number}` | 'all'
+        id: string; // `${number}` | 'all'
         name?: string;
     };
 }
