@@ -5,7 +5,7 @@ import { MessageUnique } from '@/common/message-unique';
 import { type NTQQMsgApi } from '@/core/apis';
 
 const SchemaData = Type.Object({
-    message_id: Type.Union([Type.Number(), Type.String()]),
+    message_id: Type.String(),
     emojiId: Type.Union([Type.Number(), Type.String()]),
     emojiType: Type.Union([Type.Number(), Type.String()]),
     count: Type.Union([Type.Number(), Type.String()], { default: 20 }),
@@ -18,7 +18,7 @@ export class FetchEmojiLike extends OneBotAction<Payload, Awaited<ReturnType<NTQ
     override payloadSchema = SchemaData;
 
     async _handle(payload: Payload) {
-        const msgIdPeer = MessageUnique.getMsgIdAndPeerByShortId(+payload.message_id);
+        const msgIdPeer = MessageUnique.getInnerData(payload.message_id);
         if (!msgIdPeer) throw new Error('消息不存在');
         const msg = (await this.core.apis.MsgApi.getMsgsByMsgId(msgIdPeer.Peer, [msgIdPeer.MsgId])).msgList[0];
         if (!msg) throw new Error('消息不存在');

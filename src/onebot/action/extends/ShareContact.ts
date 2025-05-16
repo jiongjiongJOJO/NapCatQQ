@@ -4,8 +4,8 @@ import { ActionName } from '@/onebot/action/router';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    user_id: Type.Optional(Type.Union([Type.Number(), Type.String()])),
-    group_id: Type.Optional(Type.Union([Type.Number(), Type.String()])),
+    user_id: Type.Optional(Type.String()),
+    group_id: Type.Optional(Type.String()),
     phoneNumber: Type.String({ default: '' }),
 });
 
@@ -29,7 +29,7 @@ export class SharePeer extends OneBotAction<Payload, GeneralCallResult & {
 }
 
 const SchemaDataGroupEx = Type.Object({
-    group_id: Type.Union([Type.Number(), Type.String()]),
+    group_id: Type.String(),
 });
 
 type PayloadGroupEx = Static<typeof SchemaDataGroupEx>;

@@ -14,19 +14,18 @@ export interface OB11Message {
     temp_source?: number;
     message_sent_type?: string;
     target_id?: number;  // 自己发送消息/私聊消息
-    self_id?: number;
+    self_id?: string;
     time: number;
-    message_id: number;
-    message_seq: number; // 和message_id一样
-    real_id: number;
-    user_id: number | string; // number
-    group_id?: number | string; // number
+    message_id: string;
+    message_seq: string; // 和message_id一样
+    real_id: string
+    user_id: string;
+    group_id?: string; // 群组ID
     message_type: 'private' | 'group';
     sub_type?: 'friend' | 'group' | 'normal';
     sender: OB11Sender;
     message: OB11MessageData[] | string;
     message_format: 'array' | 'string';
-    raw_message: string;
     font: number;
     post_type?: EventType;
     raw?: RawMessage;

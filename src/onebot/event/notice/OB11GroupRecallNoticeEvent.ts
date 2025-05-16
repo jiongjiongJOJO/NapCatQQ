@@ -3,10 +3,10 @@ import { NapCatCore } from '@/core';
 
 export class OB11GroupRecallNoticeEvent extends OB11GroupNoticeEvent {
     notice_type = 'group_recall';
-    operator_id: number;
-    message_id: number;
+    operator_id: string;
+    message_id: string;
 
-    constructor(core: NapCatCore, groupId: number, userId: number, operatorId: number, messageId: number) {
+    constructor(core: NapCatCore, groupId: string, userId: string, operatorId: string, messageId: string) {
         super(core, groupId, userId);
         this.group_id = groupId;
         this.user_id = userId;

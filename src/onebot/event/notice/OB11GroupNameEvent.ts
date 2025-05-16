@@ -6,7 +6,7 @@ export class OB11GroupNameEvent extends OB11GroupNoticeEvent {
     sub_type = 'group_name';
     name_new: string;
 
-    constructor(core: NapCatCore, groupId: number, userId: number, nameNew: string) {
+    constructor(core: NapCatCore, groupId: string, userId: string, nameNew: string) {
         super(core, groupId, userId);
         this.name_new = nameNew;
     }

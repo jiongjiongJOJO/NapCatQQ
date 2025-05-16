@@ -6,9 +6,9 @@ export type GroupDecreaseSubType = 'leave' | 'kick' | 'kick_me' | 'disband';
 export class OB11GroupDecreaseEvent extends OB11GroupNoticeEvent {
     notice_type = 'group_decrease';
     sub_type: GroupDecreaseSubType = 'leave';
-    operator_id: number;
+    operator_id: string;
 
-    constructor(core: NapCatCore, groupId: number, userId: number, operatorId: number, subType: GroupDecreaseSubType = 'leave') {
+    constructor(core: NapCatCore, groupId: string, userId: string, operatorId: string, subType: GroupDecreaseSubType = 'leave') {
         super(core, groupId, userId);
         this.group_id = groupId;
         this.operator_id = operatorId;

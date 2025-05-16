@@ -4,7 +4,7 @@ import { MessageUnique } from '@/common/message-unique';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    message_id: Type.Union([Type.Number(), Type.String()]),
+    message_id: Type.String(),
 });
 
 type Payload = Static<typeof SchemaData>;
@@ -13,7 +13,7 @@ export default class DelEssenceMsg extends OneBotAction<Payload, unknown> {
     override payloadSchema = SchemaData;
 
     async _handle(payload: Payload): Promise<unknown> {
-        const msg = MessageUnique.getMsgIdAndPeerByShortId(+payload.message_id);
+        const msg = MessageUnique.getInnerData(payload.message_id);
         if (!msg) {
             const data = this.core.apis.GroupApi.essenceLRU.getValue(+payload.message_id);
             if(!data) throw new Error('消息不存在');

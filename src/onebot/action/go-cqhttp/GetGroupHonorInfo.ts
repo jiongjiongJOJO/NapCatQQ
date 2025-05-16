@@ -4,7 +4,7 @@ import { WebHonorType } from '@/core/types';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    group_id: Type.Union([Type.Number(), Type.String()]),
+    group_id: Type.String(),
     type: Type.Optional(Type.Enum(WebHonorType))
 });
 

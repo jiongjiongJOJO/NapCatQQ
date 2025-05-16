@@ -7,10 +7,10 @@ export class OB11InputStatusEvent extends OB11BaseNoticeEvent {
     sub_type = 'input_status';
     status_text = '对方正在输入...';
     event_type = 1;
-    user_id = 0;
-    group_id = 0;
+    user_id = '0';
+    group_id = '0';
 
-    constructor(core: NapCatCore, user_id: number, eventType: number, status_text: string) {
+    constructor(core: NapCatCore, user_id: string, eventType: number, status_text: string) {
         super(core);
         this.user_id = user_id;
         this.event_type = eventType;

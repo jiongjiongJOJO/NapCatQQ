@@ -19,9 +19,9 @@ export class OneBotFriendApi {
         if (poke_uid.length == 2 && poke_uid[0]?.uid && poke_uid[1]?.uid) {
             return new OB11FriendPokeEvent(
                 this.core,
-                uin,
-                parseInt((await this.core.apis.UserApi.getUinByUidV2(poke_uid[0].uid))),
-                parseInt((await this.core.apis.UserApi.getUinByUidV2(poke_uid[1].uid))),
+                uin.toString(),
+                await this.core.apis.UserApi.getUinByUidV2(poke_uid[0].uid),
+                await this.core.apis.UserApi.getUinByUidV2(poke_uid[1].uid),
                 pokedetail,
             );
         }

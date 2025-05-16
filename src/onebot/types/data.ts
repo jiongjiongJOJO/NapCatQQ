@@ -5,7 +5,7 @@ export interface OB11User {
     phone_num?: string; // 手机号
     email?: string; // 邮箱
     category_id?: number; // 分组ID
-    user_id: number; // 用户ID
+    user_id: string; // 用户ID
     nickname: string; // 昵称
     remark?: string; // 备注
     sex?: OB11UserSex; // 性别
@@ -41,8 +41,8 @@ export enum OB11GroupMemberRole {
 }
 
 export interface OB11GroupMember {
-    group_id: number; // 群ID
-    user_id: number; // 用户ID
+    group_id: string; // 群ID
+    user_id: string; // 用户ID
     nickname: string; // 昵称
     card?: string; // 群名片
     sex?: OB11UserSex; // 性别
@@ -65,14 +65,14 @@ export interface OB11GroupMember {
 export interface OB11Group {
     group_all_shut: number; // 群全员禁言
     group_remark: string; // 群备注
-    group_id: number; // 群ID
+    group_id: string; // 群ID
     group_name: string; // 群名称
     member_count?: number; // 成员数量
     max_member_count?: number; // 最大成员数量
 }
 
 export interface OB11Sender {
-    user_id: number; // 用户ID
+    user_id: string; // 用户ID
     nickname: string; // 昵称
     sex?: OB11UserSex; // 性别
     age?: number; // 年龄
@@ -83,7 +83,7 @@ export interface OB11Sender {
 
 export interface OB11GroupFile {
     file_size: number; // 文件大小 GOCQHTTP 群文件Api扩展
-    group_id: number; // 群ID
+    group_id: string; // 群ID
     file_id: string; // 文件ID
     file_name: string; // 文件名称
     busid: number; // 业务ID
@@ -97,7 +97,7 @@ export interface OB11GroupFile {
 }
 
 export interface OB11GroupFileFolder {
-    group_id: number; // 群ID
+    group_id: string; // 群ID
     folder_id: string; // 文件夹ID
     folder: string; // 文件夹路径
     folder_name: string; // 文件夹名称

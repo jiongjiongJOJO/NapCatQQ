@@ -7,7 +7,7 @@ export class OB11GroupCardEvent extends OB11GroupNoticeEvent {
     card_old: string;
 
 
-    constructor(core: NapCatCore, groupId: number, userId: number, cardNew: string, cardOld: string) {
+    constructor(core: NapCatCore, groupId: string, userId: string, cardNew: string, cardOld: string) {
         super(core, groupId, userId);
         this.group_id = groupId;
         this.user_id = userId;

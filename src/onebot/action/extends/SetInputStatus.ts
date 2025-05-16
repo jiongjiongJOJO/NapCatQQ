@@ -4,7 +4,7 @@ import { ChatType } from '@/core';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    user_id: Type.Union([Type.Number(), Type.String()]),
+    user_id: Type.String(),
     event_type: Type.Number(),
 });
 

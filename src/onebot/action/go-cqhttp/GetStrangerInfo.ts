@@ -6,7 +6,7 @@ import { calcQQLevel } from '@/common/helper';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    user_id: Type.Union([Type.Number(), Type.String()]),
+    user_id: Type.String(),
     no_cache: Type.Union([Type.Boolean(), Type.String()], { default: false }),
 });
 
@@ -28,7 +28,7 @@ export default class GoCQHTTPGetStrangerInfo extends OneBotAction<Payload, OB11U
             ...extendData.detail.simpleInfo.baseInfo,
             ...extendData.detail.simpleInfo.relationFlags ?? {},
             ...extendData.detail.simpleInfo.status ?? {},
-            user_id: parseInt(extendData.detail.uin) ?? 0,
+            user_id: extendData.detail.uin ?? 0,
             uid: info.uid ?? uid,
             nickname: extendData.detail.simpleInfo.coreInfo.nick ?? '',
             age: extendData.detail.simpleInfo.baseInfo.age ?? info.age,

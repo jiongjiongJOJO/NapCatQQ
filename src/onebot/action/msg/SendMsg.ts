@@ -7,7 +7,6 @@ import {
     OB11PostSendMsg,
 } from '@/onebot/types';
 import { ActionName, BaseCheckResult } from '@/onebot/action/router';
-import { decodeCQCode } from '@/onebot/helper/cqcode';
 import { MessageUnique } from '@/common/message-unique';
 import { ChatType, ElementType, NapCatCore, Peer, RawMessage, SendArkElement, SendMessageElement } from '@/core';
 import { OneBotAction } from '@/onebot/action/OneBotAction';
@@ -17,7 +16,7 @@ import { PacketMsg } from '@/core/packet/message/message';
 import { rawMsgWithSendMsg } from '@/core/packet/message/converter';
 
 export interface ReturnDataType {
-    message_id: number;
+    message_id: string;
     res_id?: string;
 }
 
@@ -28,11 +27,9 @@ export enum ContextMode {
 }
 
 // Normalizes a mixed type (CQCode/a single segment/segment array) into a segment array.
-export function normalize(message: OB11MessageMixType, autoEscape = false): OB11MessageData[] {
+export function normalize(message: OB11MessageMixType): OB11MessageData[] {
     return typeof message === 'string' ? (
-        autoEscape ?
-            [{ type: OB11MessageDataType.text, data: { text: message } }] :
-            decodeCQCode(message)
+        [{ type: OB11MessageDataType.text, data: { text: message } }]
     ) : Array.isArray(message) ? message : [message];
 }
 
@@ -54,7 +51,7 @@ export async function createContext(core: NapCatCore, payload: OB11PostContext |
                     chatType: ChatType.KCHATTYPEGROUP,
                     peerUid: payload.group_id.toString(),
                     guildId: ''
-                }
+                };
             }
             throw new Error('无法获取用户信息');
         }
@@ -124,10 +121,7 @@ export class SendMsgBase extends OneBotAction<OB11PostSendMsg, ReturnDataType> {
         if (payload.message_type === 'private') this.contextMode = ContextMode.Private;
         const peer = await createContext(this.core, payload, this.contextMode);
 
-        const messages = normalize(
-            payload.message,
-            typeof payload.auto_escape === 'string' ? payload.auto_escape === 'true' : !!payload.auto_escape,
-        );
+        const messages = normalize(payload.message);
 
         if (getSpecialMsgNum(payload, OB11MessageDataType.node)) {
             const packetMode = this.core.apis.PacketApi.available;
@@ -143,11 +137,14 @@ export class SendMsgBase extends OneBotAction<OB11PostSendMsg, ReturnDataType> {
                 throw Error('发送合并转发消息失败：returnMsgAndResId 为空！');
             }
             if (returnMsgAndResId.message) {
-                const msgShortId = MessageUnique.createUniqueMsgId({
+                const msgShortId = MessageUnique.getOutputData({
                     guildId: '',
                     peerUid: peer.peerUid,
                     chatType: peer.chatType,
-                }, (returnMsgAndResId.message).msgId);
+                },
+                (returnMsgAndResId.message).msgId,
+                (returnMsgAndResId.message).msgSeq
+                );
                 return { message_id: msgShortId!, res_id: returnMsgAndResId.res_id! };
             } else if (returnMsgAndResId.res_id && !returnMsgAndResId.message) {
                 throw Error(`发送转发消息（res_id：${returnMsgAndResId.res_id} 失败`);
@@ -214,7 +211,7 @@ export class SendMsgBase extends OneBotAction<OB11PostSendMsg, ReturnDataType> {
                 packetMsg.push(transformedMsg);
             } else if (node.data.id) {
                 const id = node.data.id;
-                const nodeMsg = MessageUnique.getMsgIdAndPeerByShortId(+id) || MessageUnique.getPeerByMsgId(id);
+                const nodeMsg = MessageUnique.getInnerData(id);
                 if (!nodeMsg) {
                     this.core.context.logger.logError('转发消息失败，未找到消息', id);
                     continue;
@@ -273,17 +270,17 @@ export class SendMsgBase extends OneBotAction<OB11PostSendMsg, ReturnDataType> {
             chatType: ChatType.KCHATTYPEC2C,
             peerUid: this.core.selfInfo.uid,
         };
-        let nodeMsgIds: string[] = [];
+        let nodeMsgIds: { MsgId: string, Peer: Peer }[] = [];
         for (const messageNode of messageNodes) {
             const nodeId = messageNode.data.id;
             if (nodeId) {
                 // 对Msgid和OB11ID混用情况兜底
-                const nodeMsg = MessageUnique.getMsgIdAndPeerByShortId(parseInt(nodeId)) || MessageUnique.getPeerByMsgId(nodeId);
+                const nodeMsg = MessageUnique.getInnerData(nodeId);
                 if (!nodeMsg) {
                     this.core.context.logger.logError('转发消息失败，未找到消息', nodeId);
                     continue;
                 }
-                nodeMsgIds.push(nodeMsg.MsgId);
+                nodeMsgIds.push({ MsgId: nodeMsg.MsgId, Peer: nodeMsg.Peer });
             } else {
                 // 自定义的消息
                 try {
@@ -297,8 +294,7 @@ export class SendMsgBase extends OneBotAction<OB11PostSendMsg, ReturnDataType> {
                         }
                         const nodeMsg = await this.handleForwardedNodes(selfPeer, OB11Data.filter(e => e.type === OB11MessageDataType.node));
                         if (nodeMsg) {
-                            nodeMsgIds.push(nodeMsg.message!.msgId);
-                            MessageUnique.createUniqueMsgId(selfPeer, nodeMsg.message!.msgId);
+                            nodeMsgIds.push({ MsgId: nodeMsg.message!.msgId, Peer: selfPeer });
                         }
                         //完成子卡片生成跳过后续
                         continue;
@@ -324,8 +320,8 @@ export class SendMsgBase extends OneBotAction<OB11PostSendMsg, ReturnDataType> {
                     }
                     (await Promise.allSettled(MsgNodeList)).map((result) => {
                         if (result.status === 'fulfilled' && result.value) {
-                            nodeMsgIds.push(result.value.msgId);
-                            MessageUnique.createUniqueMsgId(selfPeer, result.value.msgId);
+                            nodeMsgIds.push({ MsgId: result.value.msgId, Peer: selfPeer });
+                            MessageUnique.getOutputData(selfPeer, result.value.msgId, result.value.msgSeq);
                         }
                     });
                 } catch (e: unknown) {
@@ -337,22 +333,18 @@ export class SendMsgBase extends OneBotAction<OB11PostSendMsg, ReturnDataType> {
         let srcPeer: Peer | undefined = undefined;
         let needSendSelf = false;
         //检测是否处于同一个Peer 不在同一个peer则全部消息由自身发送
-        for (const msgId of nodeMsgIds) {
-            const nodeMsgPeer = MessageUnique.getPeerByMsgId(msgId);
-            if (!nodeMsgPeer) {
-                this.core.context.logger.logError('转发消息失败，未找到消息', msgId);
-                continue;
-            }
-            const nodeMsg = (await this.core.apis.MsgApi.getMsgsByMsgId(nodeMsgPeer.Peer, [msgId])).msgList[0];
+        let new_nodeMsgIds: { MsgId: string, Peer: Peer }[] = [];
+        for (const data of nodeMsgIds) {
+            const nodeMsg = (await this.core.apis.MsgApi.getMsgsByMsgId(data.Peer, [data.MsgId])).msgList[0];
             if (nodeMsg) {
                 srcPeer = srcPeer ?? { chatType: nodeMsg.chatType, peerUid: nodeMsg.peerUid };
                 if (srcPeer.peerUid !== nodeMsg.peerUid) {
                     needSendSelf = true;
                 }
-                nodeMsgArray.push(nodeMsg);
+                new_nodeMsgIds.push({ MsgId: nodeMsg.msgId, Peer: data.Peer });
             }
         }
-        nodeMsgIds = nodeMsgArray.map(msg => msg.msgId);
+        nodeMsgIds = new_nodeMsgIds;
         let retMsgIds: string[] = [];
         if (needSendSelf) {
             for (const [, msg] of nodeMsgArray.entries()) {
@@ -364,7 +356,7 @@ export class SendMsgBase extends OneBotAction<OB11PostSendMsg, ReturnDataType> {
                 if (ClonedMsg) retMsgIds.push(ClonedMsg.msgId);
             }
         } else {
-            retMsgIds = nodeMsgIds;
+            retMsgIds = nodeMsgIds.map((msg) => msg.MsgId);
         }
         if (retMsgIds.length === 0) throw Error('转发消息失败，生成节点为空');
         try {

@@ -54,9 +54,9 @@ export class OneBotGroupApi {
         if (memberUin && adminUin) {
             return new OB11GroupBanEvent(
                 this.core,
-                parseInt(GroupCode),
-                parseInt(memberUin),
-                parseInt(adminUin),
+                GroupCode,
+                memberUin,
+                adminUin,
                 duration,
                 subType,
             );
@@ -101,9 +101,9 @@ export class OneBotGroupApi {
         }
         return new OB11GroupMsgEmojiLikeEvent(
             this.core,
-            parseInt(groupCode),
-            parseInt(senderUin),
-            MessageUnique.getShortIdByMsgId(replyMsg.msgId)!,
+            groupCode,
+            senderUin,
+            MessageUnique.getOutputData(peer, replyMsg.msgId, replyMsg.msgSeq),
             [{
                 emoji_id: emojiId,
                 count: 1,
@@ -116,7 +116,7 @@ export class OneBotGroupApi {
             const member = await this.core.apis.GroupApi.getGroupMember(msg.peerUid, msg.senderUin);
             if (member && member.cardName !== msg.sendMemberName) {
                 const newCardName = msg.sendMemberName ?? '';
-                const event = new OB11GroupCardEvent(this.core, parseInt(msg.peerUid), parseInt(msg.senderUin), newCardName, member.cardName);
+                const event = new OB11GroupCardEvent(this.core, msg.peerUid, msg.senderUin, newCardName, member.cardName);
                 member.cardName = newCardName;
                 return event;
             }
@@ -137,9 +137,9 @@ export class OneBotGroupApi {
         if (poke_uid.length == 2 && poke_uid[0]?.uid && poke_uid[1]?.uid) {
             return new OB11GroupPokeEvent(
                 this.core,
-                parseInt(msg.peerUid),
-                +await this.core.apis.UserApi.getUinByUidV2(poke_uid[0].uid),
-                +await this.core.apis.UserApi.getUinByUidV2(poke_uid[1].uid),
+                msg.peerUid,
+                await this.core.apis.UserApi.getUinByUidV2(poke_uid[0].uid),
+                await this.core.apis.UserApi.getUinByUidV2(poke_uid[1].uid),
                 pokedetail,
             );
         }
@@ -156,8 +156,8 @@ export class OneBotGroupApi {
             context.logger.logDebug('收到群成员新头衔消息', json);
             return new OB11GroupTitleEvent(
                 this.core,
-                +msg.peerUid,
-                +memberUin,
+                msg.peerUid,
+                memberUin,
                 title,
             );
         } else if (type === '移出') {
@@ -187,10 +187,10 @@ export class OneBotGroupApi {
         if (msgData.msgList[0]) {
             return new OB11GroupEssenceEvent(
                 this.core,
-                parseInt(msg.peerUid),
-                MessageUnique.getShortIdByMsgId(msgData.msgList[0].msgId)!,
-                parseInt(msgData.msgList[0].senderUin),
-                parseInt(realMsg?.add_digest_uin ?? '0'),
+                msg.peerUid,
+                MessageUnique.getOutputData(Peer, msgData.msgList[0].msgId, msgData.msgList[0].msgSeq)!,
+                msgData.msgList[0].senderUin,
+                realMsg?.add_digest_uin ?? '0',
             );
         }
         return;
@@ -200,7 +200,8 @@ export class OneBotGroupApi {
     async parseGroupUploadFileEvene(msg: RawMessage, element: FileElement, elementWrapper: MessageElement) {
         return new OB11GroupUploadNoticeEvent(
             this.core,
-            parseInt(msg.peerUid), parseInt(msg.senderUin || ''),
+            msg.peerUid,
+            msg.senderUin,
             {
                 id: FileNapCatOneBotUUID.encode({
                     chatType: ChatType.KCHATTYPEGROUP,
@@ -218,8 +219,8 @@ export class OneBotGroupApi {
             this.core.context.logger.logDebug('收到群名称变更事件', element);
             return new OB11GroupNameEvent(
                 this.core,
-                parseInt(msg.peerUid),
-                parseInt(await this.core.apis.UserApi.getUinByUidV2(element.memberUid)),
+                msg.peerUid,
+                await this.core.apis.UserApi.getUinByUidV2(element.memberUid),
                 element.groupName,
             );
         } else if (element.type === TipGroupElementType.KSHUTUP) {
@@ -231,9 +232,9 @@ export class OneBotGroupApi {
                 await this.core.apis.GroupApi.refreshGroupMemberCache(msg.peerUid, true);
                 return new OB11GroupIncreaseEvent(
                     this.core,
-                    parseInt(msg.peerUid),
-                    +this.core.selfInfo.uin,
-                    element.adminUid ? +await this.core.apis.UserApi.getUinByUidV2(element.adminUid) : 0,
+                    msg.peerUid,
+                    this.core.selfInfo.uin,
+                    element.adminUid ? await this.core.apis.UserApi.getUinByUidV2(element.adminUid) : '0',
                     'approve'
                 );
             }
@@ -244,9 +245,9 @@ export class OneBotGroupApi {
     async parseSelfInviteEvent(msg: RawMessage, inviterUin: string, inviteeUin: string) {
         return new OB11GroupIncreaseEvent(
             this.core,
-            parseInt(msg.peerUid),
-            +inviteeUin,
-            +inviterUin,
+            msg.peerUid,
+            inviteeUin,
+            inviterUin,
             'invite'
         );
     }
@@ -269,9 +270,9 @@ export class OneBotGroupApi {
                 if (!new_member) return;
                 return new OB11GroupIncreaseEvent(
                     this.core,
-                    +msg.peerUid,
-                    +new_member.uin,
-                    0,
+                    msg.peerUid,
+                    new_member.uin,
+                    '0',
                     'invite',
                 );
             }

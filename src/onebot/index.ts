@@ -28,7 +28,6 @@ import {
     OneBotFriendApi,
     OneBotGroupApi,
     OneBotMsgApi,
-    OneBotQuickActionApi,
     OneBotUserApi,
 } from '@/onebot/api';
 import { ActionMap, createActionMap } from '@/onebot/action';
@@ -71,8 +70,7 @@ export class NapCatOneBot11Adapter {
             GroupApi: new OneBotGroupApi(this, core),
             UserApi: new OneBotUserApi(this, core),
             FriendApi: new OneBotFriendApi(this, core),
-            MsgApi: new OneBotMsgApi(this, core),
-            QuickActionApi: new OneBotQuickActionApi(this, core)
+            MsgApi: new OneBotMsgApi(this, core)
         } as const;
         this.actions = createActionMap(this, core);
         this.networkManager = new OB11NetworkManager();
@@ -247,7 +245,7 @@ export class NapCatOneBot11Adapter {
             const uin = await this.core.apis.UserApi.getUinByUidV2(data.fromUin);
             this.context.logger.log(`[Notice] [输入状态] ${uin} ${data.statusText}`);
             await this.networkManager.emitEvent(
-                new OB11InputStatusEvent(this.core, parseInt(uin), data.eventType, data.statusText)
+                new OB11InputStatusEvent(this.core, uin, data.eventType, data.statusText)
             );
         };
 
@@ -257,13 +255,14 @@ export class NapCatOneBot11Adapter {
                     this.context.logger.logDebug(`消息时间${m.msgTime}早于启动时间${this.bootTime}，忽略上报`);
                     continue;
                 }
-                m.id = MessageUnique.createUniqueMsgId(
+                m.id = MessageUnique.getOutputData(
                     {
                         chatType: m.chatType,
                         peerUid: m.peerUid,
                         guildId: '',
                     },
-                    m.msgId
+                    m.msgId,
+                    m.msgSeq
                 );
                 await this.emitMsg(m).catch((e) =>
                     this.context.logger.logError('处理消息失败', e)
@@ -283,13 +282,14 @@ export class NapCatOneBot11Adapter {
                     // 10分钟 超时
                     const updatemsg = updatemsgs.find((e) => e.msgId === msg.msgId);
                     if (updatemsg?.sendStatus == SendStatusType.KSEND_STATUS_SUCCESS || updatemsg?.sendStatus == SendStatusType.KSEND_STATUS_SUCCESS_NOSEQ) {
-                        updatemsg.id = MessageUnique.createUniqueMsgId(
+                        updatemsg.id = MessageUnique.getOutputData(
                             {
                                 chatType: updatemsg.chatType,
                                 peerUid: updatemsg.peerUid,
                                 guildId: '',
                             },
-                            updatemsg.msgId
+                            updatemsg.msgId,
+                            updatemsg.msgSeq
                         );
                         this.emitMsg(updatemsg);
                     }
@@ -342,7 +342,7 @@ export class NapCatOneBot11Adapter {
                     await this.networkManager.emitEvent(
                         new OB11FriendRequestEvent(
                             this.core,
-                            +requesterUin,
+                            requesterUin,
                             req.extWords,
                             req.reqTime
                         )
@@ -387,8 +387,8 @@ export class NapCatOneBot11Adapter {
                             const requestUin = await this.core.apis.UserApi.getUinByUidV2(notify.user1.uid);
                             const groupRequestEvent = new OB11GroupRequestEvent(
                                 this.core,
-                                parseInt(notify.group.groupCode),
-                                parseInt(requestUin),
+                                notify.group.groupCode,
+                                requestUin,
                                 'add',
                                 notify.postscript,
                                 flag
@@ -412,8 +412,8 @@ export class NapCatOneBot11Adapter {
                         this.context.logger.logDebug(`收到邀请我加群通知:${notify}`);
                         const groupInviteEvent = new OB11GroupRequestEvent(
                             this.core,
-                            +notify.group.groupCode,
-                            +await this.core.apis.UserApi.getUinByUidV2(notify.user2.uid),
+                            notify.group.groupCode,
+                            await this.core.apis.UserApi.getUinByUidV2(notify.user2.uid),
                             'invite',
                             notify.postscript,
                             flag
@@ -430,8 +430,8 @@ export class NapCatOneBot11Adapter {
                         this.context.logger.logDebug(`收到群员邀请加群通知:${notify}`);
                         const groupInviteEvent = new OB11GroupRequestEvent(
                             this.core,
-                            +notify.group.groupCode,
-                            +await this.core.apis.UserApi.getUinByUidV2(notify.user1.uid),
+                            notify.group.groupCode,
+                            await this.core.apis.UserApi.getUinByUidV2(notify.user1.uid),
                             'add',
                             notify.postscript,
                             flag
@@ -584,7 +584,7 @@ export class NapCatOneBot11Adapter {
 
     private async emitRecallMsg(message: RawMessage, element: MessageElement) {
         const peer: Peer = { chatType: message.chatType, peerUid: message.peerUid, guildId: '' };
-        const oriMessageId = MessageUnique.getShortIdByMsgId(message.msgId) ?? MessageUnique.createUniqueMsgId(peer, message.msgId);
+        const oriMessageId = MessageUnique.getOutputData(peer, message.msgId, message.msgSeq);
         if (message.chatType == ChatType.KCHATTYPEC2C) {
             return await this.emitFriendRecallMsg(message, oriMessageId, element);
         } else if (message.chatType == ChatType.KCHATTYPEGROUP) {
@@ -593,25 +593,25 @@ export class NapCatOneBot11Adapter {
         return;
     }
 
-    private async emitFriendRecallMsg(message: RawMessage, oriMessageId: number, element: MessageElement) {
+    private async emitFriendRecallMsg(message: RawMessage, oriMessageId: string, element: MessageElement) {
         const operatorUid = element.grayTipElement?.revokeElement.operatorUid;
         if (!operatorUid) return undefined;
         return new OB11FriendRecallNoticeEvent(
             this.core,
-            +message.senderUin,
+            message.senderUin,
             oriMessageId
         );
     }
 
-    private async emitGroupRecallMsg(message: RawMessage, oriMessageId: number, element: MessageElement) {
+    private async emitGroupRecallMsg(message: RawMessage, oriMessageId: string, element: MessageElement) {
         const operatorUid = element.grayTipElement?.revokeElement.operatorUid;
         if (!operatorUid) return undefined;
         const operatorId = await this.core.apis.UserApi.getUinByUidV2(operatorUid);
         return new OB11GroupRecallNoticeEvent(
             this.core,
-            +message.peerUin,
-            +message.senderUin,
-            +operatorId,
+            message.peerUin,
+            message.senderUin,
+            operatorId,
             oriMessageId
         );
     }

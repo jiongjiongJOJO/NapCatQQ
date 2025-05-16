@@ -4,9 +4,9 @@ import { ActionName } from '@/onebot/action/router';
 import { Type, Static } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    user_id: Type.Optional(Type.Union([Type.Number(), Type.String()])),
-    start: Type.Union([Type.Number(), Type.String()], { default: 0 }),
-    count: Type.Union([Type.Number(), Type.String()], { default: 10 })
+    user_id: Type.Optional(Type.String()),
+    start: Type.String({ default: '0' }),
+    count: Type.String({ default: '10' })
 });
 
 type Payload = Static<typeof SchemaData>;

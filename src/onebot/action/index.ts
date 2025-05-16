@@ -30,7 +30,6 @@ import SetGroupAdmin from './group/SetGroupAdmin';
 import SetGroupCard from './group/SetGroupCard';
 import GetImage from './file/GetImage';
 import GetRecord from './file/GetRecord';
-import { GoCQHTTPMarkMsgAsRead, MarkAllMsgAsRead, MarkGroupMsgAsRead, MarkPrivateMsgAsRead } from './msg/MarkMsgAsRead';
 import GoCQHTTPUploadGroupFile from './go-cqhttp/UploadGroupFile';
 import SetQQAvatar from '@/onebot/action/extends/SetQQAvatar';
 import GoCQHTTPDownloadFile from './go-cqhttp/DownloadFile';
@@ -48,7 +47,6 @@ import { ForwardFriendSingleMsg, ForwardGroupSingleMsg } from '@/onebot/action/m
 import { GetFriendWithCategory } from './extends/GetFriendWithCategory';
 import { SendGroupNotice } from './go-cqhttp/SendGroupNotice';
 import { GetGroupHonorInfo } from './go-cqhttp/GetGroupHonorInfo';
-import { GoCQHTTPHandleQuickAction } from './go-cqhttp/QuickAction';
 import { GetGroupIgnoredNotifies } from './group/GetGroupIgnoredNotifies';
 import { GetOnlineClient } from './go-cqhttp/GetOnlineClient';
 import { IOCRImage, OCRImage } from './extends/OCRImage';
@@ -138,8 +136,6 @@ export function createActionMap(obContext: NapCatOneBot11Adapter, core: NapCatCo
         new SetLongNick(obContext, core),
         new ForwardFriendSingleMsg(obContext, core),
         new ForwardGroupSingleMsg(obContext, core),
-        new MarkGroupMsgAsRead(obContext, core),
-        new MarkPrivateMsgAsRead(obContext, core),
         new SetQQAvatar(obContext, core),
         new TranslateEnWordToZn(obContext, core),
         new GetGroupRootFiles(obContext, core),
@@ -199,17 +195,14 @@ export function createActionMap(obContext: NapCatOneBot11Adapter, core: NapCatCo
         new GoCQHTTPGetStrangerInfo(obContext, core),
         new GoCQHTTPDownloadFile(obContext, core),
         new GetGuildList(obContext, core),
-        new GoCQHTTPMarkMsgAsRead(obContext, core),
         new GoCQHTTPUploadGroupFile(obContext, core),
         new GoCQHTTPGetGroupMsgHistory(obContext, core),
         new GoCQHTTPGetForwardMsgAction(obContext, core),
         new GetFriendMsgHistory(obContext, core),
-        new GoCQHTTPHandleQuickAction(obContext, core),
         new GetGroupIgnoredNotifies(obContext, core),
         new DelEssenceMsg(obContext, core),
         new SetEssenceMsg(obContext, core),
         new GetRecentContact(obContext, core),
-        new MarkAllMsgAsRead(obContext, core),
         new GetProfileLike(obContext, core),
         new SetGroupPortrait(obContext, core),
         new FetchCustomFace(obContext, core),

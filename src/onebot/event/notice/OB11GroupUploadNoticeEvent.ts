@@ -12,7 +12,7 @@ export class OB11GroupUploadNoticeEvent extends OB11GroupNoticeEvent {
     notice_type = 'group_upload';
     file: GroupUploadFile;
 
-    constructor(core: NapCatCore, groupId: number, userId: number, file: GroupUploadFile) {
+    constructor(core: NapCatCore, groupId: string, userId: string, file: GroupUploadFile) {
         super(core, groupId, userId);
         this.group_id = groupId;
         this.user_id = userId;

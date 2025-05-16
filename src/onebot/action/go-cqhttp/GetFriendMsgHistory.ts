@@ -31,13 +31,13 @@ export default class GetFriendMsgHistory extends OneBotAction<Payload, Response>
         const friend = await this.core.apis.FriendApi.isBuddy(uid);
         const peer = { chatType: friend ? ChatType.KCHATTYPEC2C : ChatType.KCHATTYPETEMPC2CFROMGROUP, peerUid: uid };
         const hasMessageSeq = !payload.message_seq ? !!payload.message_seq : !(payload.message_seq?.toString() === '' || payload.message_seq?.toString() === '0');
-        const startMsgId = hasMessageSeq ? (MessageUnique.getMsgIdAndPeerByShortId(+payload.message_seq!)?.MsgId ?? payload.message_seq!.toString()) : '0';
+        const startMsgId = hasMessageSeq ? (MessageUnique.getInnerData(payload.message_seq!)?.MsgId ?? payload.message_seq!.toString()) : '0';
         const msgList = hasMessageSeq ?
             (await this.core.apis.MsgApi.getMsgHistory(peer, startMsgId, +payload.count, payload.reverseOrder)).msgList : (await this.core.apis.MsgApi.getAioFirstViewLatestMsgs(peer, +payload.count)).msgList;
         if (msgList.length === 0) throw new Error(`消息${payload.message_seq}不存在`);
         //转换序号
         await Promise.all(msgList.map(async msg => {
-            msg.id = MessageUnique.createUniqueMsgId({ guildId: '', chatType: msg.chatType, peerUid: msg.peerUid }, msg.msgId);
+            msg.id = MessageUnique.getOutputData({ guildId: '', chatType: msg.chatType, peerUid: msg.peerUid }, msg.msgId, msg.msgSeq);
         }));
         //烘焙消息
         const ob11MsgList = (await Promise.all(

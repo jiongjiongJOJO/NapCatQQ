@@ -3,8 +3,8 @@ import { ActionName } from '@/onebot/action/router';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    friend_id: Type.Optional(Type.Union([Type.String(), Type.Number()])),
-    user_id: Type.Optional(Type.Union([Type.String(), Type.Number()])),
+    friend_id: Type.Optional(Type.String()),
+    user_id: Type.Optional(Type.String()),
     temp_block: Type.Optional(Type.Boolean()),
     temp_both_del: Type.Optional(Type.Boolean()),
 });

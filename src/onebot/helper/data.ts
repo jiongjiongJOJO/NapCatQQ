@@ -13,7 +13,7 @@ import {
 export class OB11Construct {
     static selfInfo(selfInfo: SelfInfo): OB11User {
         return {
-            user_id: +selfInfo.uin,
+            user_id: selfInfo.uin,
             nickname: selfInfo.nick,
         };
     }
@@ -23,7 +23,7 @@ export class OB11Construct {
             birthday_year: rawFriend.baseInfo.birthday_year,
             birthday_month: rawFriend.baseInfo.birthday_month,
             birthday_day: rawFriend.baseInfo.birthday_day,
-            user_id: parseInt(rawFriend.coreInfo.uin),
+            user_id: rawFriend.coreInfo.uin,
             age: rawFriend.baseInfo.age,
             phone_num: rawFriend.baseInfo.phoneNum,
             email: rawFriend.baseInfo.eMail,
@@ -39,7 +39,7 @@ export class OB11Construct {
             birthday_year: friends.baseInfo.birthday_year,
             birthday_month: friends.baseInfo.birthday_month,
             birthday_day: friends.baseInfo.birthday_day,
-            user_id: parseInt(friends.coreInfo.uin),
+            user_id: friends.coreInfo.uin,
             age: friends.baseInfo.age,
             phone_num: friends.baseInfo.phoneNum,
             email: friends.baseInfo.eMail,
@@ -70,8 +70,8 @@ export class OB11Construct {
 
     static groupMember(group_id: string, member: GroupMember): OB11GroupMember {
         return {
-            group_id: +group_id,
-            user_id: +member.uin,
+            group_id: group_id,
+            user_id: member.uin,
             nickname: member.nick,
             card: member.cardName,
             sex: this.sex(member.sex),
@@ -93,9 +93,9 @@ export class OB11Construct {
 
     static group(group: Group): OB11Group {
         return {
-            group_all_shut: (+group.groupShutupExpireTime > 0 )? -1 : 0,
+            group_all_shut: (+group.groupShutupExpireTime > 0) ? -1 : 0,
             group_remark: group.remarkName,
-            group_id: +group.groupCode,
+            group_id: group.groupCode,
             group_name: group.groupName,
             member_count: group.memberCount,
             max_member_count: group.maxMember,
@@ -108,7 +108,7 @@ export class OB11Construct {
 
     static file(peerId: string, file: Exclude<GroupFileInfoUpdateParamType['item'][0]['fileInfo'], undefined>): OB11GroupFile {
         return {
-            group_id: +peerId,
+            group_id: peerId,
             file_id: FileNapCatOneBotUUID.encodeModelId({ chatType: 2, peerUid: peerId }, file.fileModelId, file.fileId, file.fileId ?? ''),
             file_name: file.fileName,
             busid: file.busId,
@@ -125,7 +125,7 @@ export class OB11Construct {
 
     static folder(peerId: string, folder: Exclude<GroupFileInfoUpdateParamType['item'][0]['folderInfo'], undefined>): OB11GroupFileFolder {
         return {
-            group_id: +peerId,
+            group_id: peerId,
             folder_id: folder.folderId,
             folder: folder.folderId,
             folder_name: folder.folderName,

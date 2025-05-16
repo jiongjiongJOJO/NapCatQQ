@@ -3,7 +3,7 @@ import { OneBotAction } from '@/onebot/action/OneBotAction';
 import { ActionName } from '@/onebot/action/router';
 
 const SchemaData = Type.Object({
-    count: Type.Union([Type.Number(), Type.String()], { default: 48 }),
+    count: Type.Number({ default: 48 }),
 });
 
 type Payload = Static<typeof SchemaData>;

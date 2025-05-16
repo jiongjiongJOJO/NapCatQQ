@@ -5,9 +5,9 @@ import { MessageUnique } from '@/common/message-unique';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    message_id: Type.Union([Type.Number(), Type.String()]),
-    group_id: Type.Optional(Type.Union([Type.Number(), Type.String()])),
-    user_id: Type.Optional(Type.Union([Type.Number(), Type.String()])),
+    message_id: Type.String(),
+    group_id: Type.Optional(Type.String()),
+    user_id: Type.Optional(Type.String()),
 });
 
 type Payload = Static<typeof SchemaData>;
@@ -25,7 +25,7 @@ class ForwardSingleMsg extends OneBotAction<Payload, null> {
     }
 
     async _handle(payload: Payload): Promise<null> {
-        const msg = MessageUnique.getMsgIdAndPeerByShortId(+payload.message_id);
+        const msg = MessageUnique.getInnerData(payload.message_id);
         if (!msg) {
             throw new Error(`无法找到消息${payload.message_id}`);
         }

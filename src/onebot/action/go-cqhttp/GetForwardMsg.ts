@@ -117,8 +117,7 @@ export class GoCQHTTPGetForwardMsgAction extends OneBotAction<Payload, {
             }
             throw new Error('ResId无效: 找不到相关的聊天记录');
         }
-        const rootMsgId = MessageUnique.getShortIdByMsgId(msgId.toString());
-        const rootMsg = MessageUnique.getMsgIdAndPeerByShortId(rootMsgId ?? +msgId);
+        const rootMsg = MessageUnique.getInnerData(msgId);
 
         if (rootMsg) {
             // 5. 获取消息内容

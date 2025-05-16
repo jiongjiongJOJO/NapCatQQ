@@ -477,7 +477,7 @@ export enum SendStatusType {
 export interface RawMessage {
     parentMsgPeer: Peer; // 父消息的Peer
     parentMsgIdList: string[];// 父消息 ID 列表
-    id?: number;// 扩展字段，与 Ob11 msg ID 有关
+    id?: string;// 扩展字段，与 Ob11 msg ID 有关
     guildId: string;// 频道ID
     msgRandom: string;// 消息ID相关
     msgId: string;// 雪花ID

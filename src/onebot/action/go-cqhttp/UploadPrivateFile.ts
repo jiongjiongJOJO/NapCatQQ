@@ -8,7 +8,7 @@ import { ContextMode, createContext } from '@/onebot/action/msg/SendMsg';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    user_id: Type.Union([Type.Number(), Type.String()]),
+    user_id: Type.String(),
     file: Type.String(),
     name: Type.String(),
 });

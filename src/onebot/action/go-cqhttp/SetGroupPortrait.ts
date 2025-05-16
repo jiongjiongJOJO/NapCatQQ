@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 import { GeneralCallResult } from '@/core';
 const SchemaData = Type.Object({
     file: Type.String(),
-    group_id: Type.Union([Type.Number(), Type.String()])
+    group_id: Type.String()
 });
 
 type Payload = Static<typeof SchemaData>;

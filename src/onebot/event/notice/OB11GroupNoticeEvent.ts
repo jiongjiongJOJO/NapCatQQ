@@ -2,10 +2,10 @@ import { OB11BaseNoticeEvent } from './OB11BaseNoticeEvent';
 import { NapCatCore } from '@/core';
 
 export abstract class OB11GroupNoticeEvent extends OB11BaseNoticeEvent {
-    group_id: number;
-    user_id: number;
+    group_id: string;
+    user_id: string;
 
-    constructor(core: NapCatCore, group_id: number, user_id: number) {
+    constructor(core: NapCatCore, group_id: string, user_id: string) {
         super(core);
         this.group_id = group_id;
         this.user_id = user_id;

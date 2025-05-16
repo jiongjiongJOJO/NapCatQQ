@@ -3,7 +3,7 @@ import { OneBotAction } from '../OneBotAction';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    group_id: Type.Union([Type.Number(), Type.String()]),
+    group_id: Type.String(),
     bot_appid: Type.String(),
     button_id: Type.String({ default: '' }),
     callback_data: Type.String({ default: '' }),
@@ -25,6 +25,6 @@ export class ClickInlineKeyboardButton extends OneBotAction<Payload, unknown> {
             callback_data: payload.callback_data,
             dmFlag: 0,
             chatType: 2
-        })
+        });
     }
 }

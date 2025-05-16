@@ -31,7 +31,6 @@ import {
 } from '@/onebot';
 import { OB11Construct } from '@/onebot/helper/data';
 import { EventType } from '@/onebot/event/OneBotEvent';
-import { encodeCQCode } from '@/onebot/helper/cqcode';
 import { uriToLocalFile } from '@/common/file';
 import { RequestUtil } from '@/common/request';
 import fsPromise from 'node:fs/promises';
@@ -150,7 +149,7 @@ export class OneBotMsgApi {
             if (this.core.apis.PacketApi.available) {
                 let url;
                 try {
-                    url = await this.core.apis.FileApi.getFileUrl(msg.chatType, msg.peerUid, element.fileUuid, element.file10MMd5)
+                    url = await this.core.apis.FileApi.getFileUrl(msg.chatType, msg.peerUid, element.fileUuid, element.file10MMd5);
                 } catch (error) {
                     url = '';
                 }
@@ -163,7 +162,7 @@ export class OneBotMsgApi {
                             file_size: element.fileSize,
                             url: url,
                         },
-                    }
+                    };
                 }
             }
             return {
@@ -251,7 +250,7 @@ export class OneBotMsgApi {
             const createReplyData = (msgId: string): OB11MessageData => ({
                 type: OB11MessageDataType.reply,
                 data: {
-                    id: MessageUnique.createUniqueMsgId(peer, msgId).toString(),
+                    id: MessageUnique.getOutputData(peer, msgId, msg.msgSeq).toString(),
                 },
             });
 
@@ -441,7 +440,7 @@ export class OneBotMsgApi {
                         url: pttUrl,
                         file_size: element.fileSize,
                     },
-                }
+                };
             }
             return {
                 type: OB11MessageDataType.voice,
@@ -543,7 +542,7 @@ export class OneBotMsgApi {
         },
 
         [OB11MessageDataType.reply]: async ({ data: { id } }) => {
-            const replyMsgM = MessageUnique.getMsgIdAndPeerByShortId(parseInt(id));
+            const replyMsgM = MessageUnique.getInnerData(id);
             if (!replyMsgM) {
                 this.core.context.logger.logWarn('回复消息不存在', id);
                 return undefined;
@@ -868,7 +867,7 @@ export class OneBotMsgApi {
                 }
                 ;
             } else if (grayTipElement.jsonGrayTipElement.busiId == 19324 && msg.peerUid !== '') {
-                return new OB11FriendAddNoticeEvent(this.core, Number(await this.core.apis.UserApi.getUinByUidV2(msg.peerUid)));
+                return new OB11FriendAddNoticeEvent(this.core, await this.core.apis.UserApi.getUinByUidV2(msg.peerUid));
             }
         }
         return;
@@ -898,7 +897,7 @@ export class OneBotMsgApi {
         const parsed = await Promise.all(multiMsgs.map(async msg => {
             msg.parentMsgPeer = parentMsgPeer;
             msg.parentMsgIdList = parentMsgIdList;
-            msg.id = MessageUnique.createUniqueMsgId(parentMsgPeer, msg.msgId);
+            msg.id = MessageUnique.getOutputData(parentMsgPeer, msg.msgId, msg.msgSeq);
             //该ID仅用查看 无法调用
             return await this.parseMessage(msg, 'array', true);
         }));
@@ -941,16 +940,14 @@ export class OneBotMsgApi {
 
         const validSegments = await this.parseMessageSegments(msg, parseMultMsg);
         resMsg.message = validSegments;
-        resMsg.raw_message = validSegments.map(msg => encodeCQCode(msg)).join('').trim();
-
         const stringMsg = await this.convertArrayToStringMessage(resMsg);
         return { stringMsg, arrayMsg: resMsg };
     }
 
     private initializeMessage(msg: RawMessage): OB11Message {
         return {
-            self_id: parseInt(this.core.selfInfo.uin),
-            user_id: parseInt(msg.senderUin),
+            self_id: this.core.selfInfo.uin,
+            user_id: msg.senderUin,
             time: parseInt(msg.msgTime) || Date.now(),
             message_id: msg.id!,
             message_seq: msg.id!,
@@ -958,11 +955,10 @@ export class OneBotMsgApi {
             real_seq: msg.msgSeq,
             message_type: msg.chatType == ChatType.KCHATTYPEGROUP ? 'group' : 'private',
             sender: {
-                user_id: +(msg.senderUin ?? 0),
+                user_id: (msg.senderUin ?? 0).toString(),
                 nickname: msg.sendNickName,
                 card: msg.sendMemberName ?? '',
             },
-            raw_message: '',
             font: 14,
             sub_type: 'friend',
             message: [],
@@ -973,7 +969,7 @@ export class OneBotMsgApi {
 
     private async handleGroupMessage(resMsg: OB11Message, msg: RawMessage) {
         resMsg.sub_type = 'normal';
-        resMsg.group_id = parseInt(msg.peerUin);
+        resMsg.group_id = msg.peerUin;
         let member = await this.core.apis.GroupApi.getGroupMember(msg.peerUin, msg.senderUin);
         if (!member) member = await this.core.apis.GroupApi.getGroupMember(msg.peerUin, msg.senderUin);
         if (member) {
@@ -999,11 +995,11 @@ export class OneBotMsgApi {
         const ret = await this.core.apis.MsgApi.getTempChatInfo(ChatType.KCHATTYPETEMPC2CFROMGROUP, msg.senderUid);
         if (ret.result === 0) {
             const member = await this.core.apis.GroupApi.getGroupMember(msg.peerUin, msg.senderUin);
-            resMsg.group_id = parseInt(ret.tmpChatInfo!.groupCode);
+            resMsg.group_id = ret.tmpChatInfo!.groupCode;
             resMsg.sender.nickname = member?.nick ?? member?.cardName ?? '临时会话';
             resMsg.temp_source = 0;
         } else {
-            resMsg.group_id = 284840486;
+            resMsg.group_id = '284840486';
             resMsg.temp_source = 0;
             resMsg.sender.nickname = '临时会话';
         }
@@ -1049,14 +1045,12 @@ export class OneBotMsgApi {
     private async convertArrayToStringMessage(originMsg: OB11Message): Promise<OB11Message> {
         const msg = structuredClone(originMsg);
         msg.message_format = 'string';
-        msg.message = msg.raw_message;
         return msg;
     }
 
     async importArrayTostringMsg(originMsg: OB11Message) {
         const msg = structuredClone(originMsg);
         msg.message_format = 'string';
-        msg.message = msg.raw_message;
         return msg;
     }
 
@@ -1094,16 +1088,16 @@ export class OneBotMsgApi {
         const calculateTotalSize = async (elements: SendMessageElement[]): Promise<number> => {
             const sizePromises = elements.map(async element => {
                 switch (element.elementType) {
-                    case ElementType.PTT:
-                        return (await fsPromise.stat(element.pttElement.filePath)).size;
-                    case ElementType.FILE:
-                        return (await fsPromise.stat(element.fileElement.filePath)).size;
-                    case ElementType.VIDEO:
-                        return (await fsPromise.stat(element.videoElement.filePath)).size;
-                    case ElementType.PIC:
-                        return (await fsPromise.stat(element.picElement.sourcePath)).size;
-                    default:
-                        return 0;
+                case ElementType.PTT:
+                    return (await fsPromise.stat(element.pttElement.filePath)).size;
+                case ElementType.FILE:
+                    return (await fsPromise.stat(element.fileElement.filePath)).size;
+                case ElementType.VIDEO:
+                    return (await fsPromise.stat(element.videoElement.filePath)).size;
+                case ElementType.PIC:
+                    return (await fsPromise.stat(element.picElement.sourcePath)).size;
+                default:
+                    return 0;
                 }
             });
             const sizes = await Promise.all(sizePromises);
@@ -1119,11 +1113,11 @@ export class OneBotMsgApi {
         try {
             const returnMsg = await this.core.apis.MsgApi.sendMsg(peer, sendElements, timeout);
             if (!returnMsg) throw new Error('发送消息失败');
-            returnMsg.id = MessageUnique.createUniqueMsgId({
+            returnMsg.id = MessageUnique.getOutputData({
                 chatType: peer.chatType,
                 guildId: '',
                 peerUid: peer.peerUid,
-            }, returnMsg.msgId);
+            }, returnMsg.msgId, returnMsg.msgSeq);
             return returnMsg;
         } catch (error) {
             throw new Error((error as Error).message);
@@ -1193,16 +1187,16 @@ export class OneBotMsgApi {
 
     groupChangDecreseType2String(type: number): GroupDecreaseSubType {
         switch (type) {
-            case 130:
-                return 'leave';
-            case 131:
-                return 'kick';
-            case 3:
-                return 'kick_me';
-            case 129:
-                return 'disband';
-            default:
-                return 'kick';
+        case 130:
+            return 'leave';
+        case 131:
+            return 'kick';
+        case 3:
+            return 'kick_me';
+        case 129:
+            return 'disband';
+        default:
+            return 'kick';
         }
     }
 
@@ -1243,9 +1237,9 @@ export class OneBotMsgApi {
             );
             return new OB11GroupIncreaseEvent(
                 this.core,
-                groupChange.groupUin,
-                groupChange.memberUid ? +await this.core.apis.UserApi.getUinByUidV2(groupChange.memberUid) : 0,
-                operatorUid ? +await this.core.apis.UserApi.getUinByUidV2(operatorUid) : 0,
+                groupChange.groupUin.toString(),
+                groupChange.memberUid ? await this.core.apis.UserApi.getUinByUidV2(groupChange.memberUid) : '0',
+                operatorUid ? await this.core.apis.UserApi.getUinByUidV2(operatorUid) : '0',
                 groupChange.decreaseType == 131 ? 'invite' : 'approve',
             );
 
@@ -1269,9 +1263,9 @@ export class OneBotMsgApi {
             }
             return new OB11GroupDecreaseEvent(
                 this.core,
-                groupChange.groupUin,
-                groupChange.memberUid ? +await this.core.apis.UserApi.getUinByUidV2(groupChange.memberUid) : 0,
-                operatorUid ? +await this.core.apis.UserApi.getUinByUidV2(operatorUid) : 0,
+                groupChange.groupUin.toString(),
+                groupChange.memberUid ? await this.core.apis.UserApi.getUinByUidV2(groupChange.memberUid) : '0',
+                operatorUid ? await this.core.apis.UserApi.getUinByUidV2(operatorUid) : '0',
                 this.groupChangDecreseType2String(groupChange.decreaseType),
             );
         } else if (SysMessage.contentHead.type == 44 && SysMessage.body?.msgContent) {
@@ -1288,8 +1282,8 @@ export class OneBotMsgApi {
             }
             return new OB11GroupAdminNoticeEvent(
                 this.core,
-                groupAmin.groupUin,
-                +await this.core.apis.UserApi.getUinByUidV2(uid),
+                groupAmin.groupUin.toString(),
+                await this.core.apis.UserApi.getUinByUidV2(uid),
                 enabled ? 'set' : 'unset'
             );
         } else if (SysMessage.contentHead.type == 87 && SysMessage.body?.msgContent) {
@@ -1352,8 +1346,8 @@ export class OneBotMsgApi {
             });
             return new OB11GroupRequestEvent(
                 this.core,
-                +groupInvite.groupUin,
-                +await this.core.apis.UserApi.getUinByUidV2(groupInvite.invitorUid),
+                groupInvite.groupUin.toString(),
+                await this.core.apis.UserApi.getUinByUidV2(groupInvite.invitorUid),
                 'invite',
                 '',
                 request_seq

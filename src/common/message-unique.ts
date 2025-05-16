@@ -1,6 +1,4 @@
 import { Peer } from '@/core';
-import crypto from 'crypto';
-
 export class LimitedHashTable<K, V> {
     private readonly keyToValue: Map<K, V> = new Map();
     private readonly valueToKey: Map<V, K> = new Map();
@@ -78,65 +76,19 @@ export class LimitedHashTable<K, V> {
 }
 
 class MessageUniqueWrapper {
-    private readonly msgDataMap: LimitedHashTable<string, number>;
-    private readonly msgIdMap: LimitedHashTable<string, number>;
-
-    constructor(maxMap: number = 5000) {
-        this.msgIdMap = new LimitedHashTable<string, number>(maxMap);
-        this.msgDataMap = new LimitedHashTable<string, number>(maxMap);
+    constructor() {
     }
 
-    getRecentMsgIds(Peer: Peer, size: number): string[] {
-        const heads = this.msgIdMap.getHeads(size);
-        if (!heads) {
-            return [];
+    getOutputData(peer: Peer, msg_id: string, seq: string): string {
+        return `${peer.chatType}|${msg_id}|${peer.peerUid}|${seq}`;
+    }
+
+    getInnerData(shortId: string): { MsgId: string; Peer: Peer, seq: string } | undefined {
+        const [chatType, msgId, peerUid, seq] = shortId.split('|');
+        if (!chatType || !msgId || !peerUid || !seq) {
+            return undefined;
         }
-        const data = heads.map((t) => MessageUnique.getMsgIdAndPeerByShortId(t.value));
-        const ret = data.filter((t) => t?.Peer.chatType === Peer.chatType && t?.Peer.peerUid === Peer.peerUid);
-        return ret.map((t) => t?.MsgId).filter((t) => t !== undefined);
-    }
-
-    createUniqueMsgId(peer: Peer, msgId: string) {
-        const key = `${msgId}|${peer.chatType}|${peer.peerUid}`;
-        const hash = crypto.createHash('md5').update(key).digest();
-        if (hash[0]) {
-            //设置第一个bit为0 保证shortId为正数
-            hash[0] &= 0x7f;
-        }
-        const shortId = hash.readInt32BE(0);
-        //减少性能损耗
-        this.msgIdMap.set(msgId, shortId);
-        this.msgDataMap.set(key, shortId);
-        return shortId;
-    }
-
-    getMsgIdAndPeerByShortId(shortId: number): { MsgId: string; Peer: Peer } | undefined {
-        const data = this.msgDataMap.getKey(shortId);
-        if (data) {
-            const [msgId, chatTypeStr, peerUid] = data.split('|');
-            const peer: Peer = {
-                chatType: parseInt(chatTypeStr ?? '0'),
-                peerUid: peerUid ?? '',
-                guildId: '',
-            };
-            return { MsgId: msgId ?? '0', Peer: peer };
-        }
-        return undefined;
-    }
-
-    getShortIdByMsgId(msgId: string): number | undefined {
-        return this.msgIdMap.getValue(msgId);
-    }
-
-    getPeerByMsgId(msgId: string) {
-        const shortId = this.msgIdMap.getValue(msgId);
-        if (!shortId) return undefined;
-        return this.getMsgIdAndPeerByShortId(shortId);
-    }
-
-    resize(maxSize: number): void {
-        this.msgIdMap.resize(maxSize);
-        this.msgDataMap.resize(maxSize);
+        return { MsgId: msgId, Peer: { chatType: parseInt(chatType), peerUid, guildId: '' }, seq: seq };
     }
 }
 

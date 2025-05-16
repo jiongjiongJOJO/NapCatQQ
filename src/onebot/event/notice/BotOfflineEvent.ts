@@ -3,13 +3,13 @@ import { NapCatCore } from '@/core';
 
 export class BotOfflineEvent extends OB11BaseNoticeEvent {
     notice_type = 'bot_offline';
-    user_id: number;
+    user_id: string;
     tag: string = 'BotOfflineEvent';
     message: string = 'BotOfflineEvent';
 
     public constructor(core: NapCatCore, tag: string, message: string) {
         super(core);
-        this.user_id = +core.selfInfo.uin;
+        this.user_id = core.selfInfo.uin;
         this.tag = tag;
         this.message = message;
     }

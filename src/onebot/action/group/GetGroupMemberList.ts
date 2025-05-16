@@ -6,7 +6,7 @@ import { Static, Type } from '@sinclair/typebox';
 import { GroupMember } from '@/core';
 
 const SchemaData = Type.Object({
-    group_id: Type.Union([Type.Number(), Type.String()]),
+    group_id: Type.String(),
     no_cache: Type.Optional(Type.Union([Type.Boolean(), Type.String()]))
 });
 

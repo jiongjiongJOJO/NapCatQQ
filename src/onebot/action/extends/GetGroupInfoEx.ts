@@ -2,7 +2,7 @@ import { OneBotAction } from '@/onebot/action/OneBotAction';
 import { ActionName } from '@/onebot/action/router';
 import { Type, Static } from '@sinclair/typebox';
 const SchemaData = Type.Object({
-    group_id: Type.Union([Type.Number(), Type.String()]),
+    group_id: Type.String(),
 });
 
 type Payload = Static<typeof SchemaData>;

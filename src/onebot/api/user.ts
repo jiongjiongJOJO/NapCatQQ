@@ -23,7 +23,7 @@ export class OneBotUserApi {
         const times = detail.txt.match(/\d+/) ?? '0';
         return new OB11ProfileLikeEvent(
             this.core,
-            Number(detail.uin),
+            detail.uin.toString(),
             detail.nickname,
             parseInt(times[0], 10),
             likeMsg.time,

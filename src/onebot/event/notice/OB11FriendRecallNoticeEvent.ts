@@ -3,10 +3,10 @@ import { NapCatCore } from '@/core';
 
 export class OB11FriendRecallNoticeEvent extends OB11BaseNoticeEvent {
     notice_type = 'friend_recall';
-    user_id: number;
-    message_id: number;
+    user_id: string;
+    message_id: string;
 
-    public constructor(core: NapCatCore, userId: number, messageId: number) {
+    public constructor(core: NapCatCore, userId: string, messageId: string) {
         super(core);
         this.user_id = userId;
         this.message_id = messageId;

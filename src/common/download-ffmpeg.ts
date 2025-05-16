@@ -8,12 +8,12 @@ import { pipeline } from 'stream/promises';
 import { fileURLToPath } from 'url';
 import { LogWrapper } from './log';
 
-const downloadOri = "https://github.com/NapNeko/ffmpeg-build/releases/download/v1.0.0/ffmpeg-7.1.1-win64.zip"
+const downloadOri = 'https://github.com/NapNeko/ffmpeg-build/releases/download/v1.0.0/ffmpeg-7.1.1-win64.zip';
 const urls = [
-    "https://github.moeyy.xyz/" + downloadOri,
-    "https://ghp.ci/" + downloadOri,
-    "https://gh.api.99988866.xyz/" + downloadOri,
-    "https://gh.api.99988866.xyz/" + downloadOri,
+    'https://github.moeyy.xyz/' + downloadOri,
+    'https://ghp.ci/' + downloadOri,
+    'https://gh.api.99988866.xyz/' + downloadOri,
+    'https://gh.api.99988866.xyz/' + downloadOri,
     downloadOri
 ];
 
@@ -350,11 +350,11 @@ export async function downloadFFmpegIfNotExists(log: LogWrapper) {
         return {
             path: path.join(currentPath, 'ffmpeg'),
             reset: true
-        }
+        };
     }
 
     return {
         path: path.join(currentPath, 'ffmpeg'),
         reset: true
-    }
+    };
 }

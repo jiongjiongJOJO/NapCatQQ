@@ -1,14 +1,11 @@
 import { OB11EmitEventContent, OB11NetworkReloadType } from '@/onebot/network/index';
 import { createHmac } from 'crypto';
-import { QuickAction, QuickActionEvent } from '@/onebot/types';
 import { NapCatCore } from '@/core';
 import { NapCatOneBot11Adapter } from '..';
 import { RequestUtil } from '@/common/request';
 import { HttpClientConfig } from '@/onebot/config/config';
 import { ActionMap } from '@/onebot/action';
 import { IOB11NetworkAdapter } from '@/onebot/network/adapter';
-import json5 from 'json5';
-
 export class OB11HttpClientAdapter extends IOB11NetworkAdapter<HttpClientConfig> {
     constructor(
         name: string, config: HttpClientConfig, core: NapCatCore, obContext: NapCatOneBot11Adapter, actions: ActionMap
@@ -34,10 +31,7 @@ export class OB11HttpClientAdapter extends IOB11NetworkAdapter<HttpClientConfig>
             headers['x-signature'] = 'sha1=' + hmac.digest('hex');
         }
 
-        const data = await RequestUtil.HttpGetText(this.config.url, 'POST', msgStr, headers);
-        const resJson: QuickAction = data ? json5.parse(data) : {};
-
-        await this.obContext.apis.QuickActionApi.handleQuickOperation(event as QuickActionEvent, resJson);
+        await RequestUtil.HttpGetText(this.config.url, 'POST', msgStr, headers);
     }
 
     open() {

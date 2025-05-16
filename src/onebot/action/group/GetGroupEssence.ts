@@ -7,7 +7,7 @@ import { Static, Type } from '@sinclair/typebox';
 import { NetworkAdapterConfig } from '@/onebot/config/config';
 
 const SchemaData = Type.Object({
-    group_id: Type.Union([Type.Number(), Type.String()]),
+    group_id: Type.String(),
 });
 
 type Payload = Static<typeof SchemaData>;
@@ -22,7 +22,7 @@ export class GetGroupEssence extends OneBotAction<Payload, unknown> {
             return undefined;
         }
         return {
-            id: MessageUnique.createUniqueMsgId(peer, replyMsgList.msgId),
+            id: MessageUnique.getOutputData(peer, replyMsgList.msgId, replyMsgList.msgSeq),
             msg: replyMsgList
         };
     }

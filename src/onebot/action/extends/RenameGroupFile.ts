@@ -4,7 +4,7 @@ import { GetPacketStatusDepends } from '@/onebot/action/packet/GetPacketStatus';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    group_id: Type.Union([Type.Number(), Type.String()]),
+    group_id: Type.String(),
     file_id: Type.String(),
     current_parent_directory: Type.String(),
     new_name: Type.String(),

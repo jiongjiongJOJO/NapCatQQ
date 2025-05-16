@@ -4,7 +4,7 @@ import { MessageUnique } from '@/common/message-unique';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    message_id: Type.Union([Type.Number(), Type.String()]),
+    message_id: Type.String(),
     emoji_id: Type.Union([Type.Number(), Type.String()]),
     set: Type.Optional(Type.Union([Type.Boolean(), Type.String()]))
 });
@@ -16,7 +16,7 @@ export class SetMsgEmojiLike extends OneBotAction<Payload, unknown> {
     override payloadSchema = SchemaData;
 
     async _handle(payload: Payload) {
-        const msg = MessageUnique.getMsgIdAndPeerByShortId(+payload.message_id);
+        const msg = MessageUnique.getInnerData(payload.message_id);
         if (!msg) {
             throw new Error('msg not found');
         }

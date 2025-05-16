@@ -6,7 +6,7 @@ import { OB11Construct } from '@/onebot/helper/data';
 import { Static, Type } from '@sinclair/typebox';
 
 const SchemaData = Type.Object({
-    group_id: Type.Union([Type.Number(), Type.String()]),
+    group_id: Type.String(),
     file_count: Type.Union([Type.Number(), Type.String()], { default: 50 }),
 });
 

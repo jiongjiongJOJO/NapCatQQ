@@ -5,10 +5,10 @@ type GroupIncreaseSubType = 'approve' | 'invite';
 
 export class OB11GroupIncreaseEvent extends OB11GroupNoticeEvent {
     notice_type = 'group_increase';
-    operator_id: number;
+    operator_id: string;
     sub_type: GroupIncreaseSubType;
 
-    constructor(core: NapCatCore, groupId: number, userId: number, operatorId: number, subType: GroupIncreaseSubType = 'approve') {
+    constructor(core: NapCatCore, groupId: string, userId: string, operatorId: string, subType: GroupIncreaseSubType = 'approve') {
         super(core, groupId, userId);
         this.group_id = groupId;
         this.operator_id = operatorId;
