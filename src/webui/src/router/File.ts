@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
 import {
     ListFilesHandler,
     CreateDirHandler,
@@ -20,15 +19,15 @@ import {
 
 const router = Router();
 
-const apiLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1分钟内
-    max: 60, // 最大60个请求
-    validate: {
-        xForwardedForHeader: false,
-    },
-});
+// const apiLimiter = rateLimit({
+//     windowMs: 1 * 60 * 1000, // 1分钟内
+//     max: 60, // 最大60个请求
+//     validate: {
+//         xForwardedForHeader: false,
+//     },
+// });
 
-router.use(apiLimiter);
+// router.use(apiLimiter);
 
 router.get('/list', ListFilesHandler);
 router.post('/mkdir', CreateDirHandler);

@@ -3,6 +3,7 @@ import { defineConfig, PluginOption, UserConfig } from 'vite';
 import { resolve } from 'path';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { builtinModules } from 'module';
+import wasm from 'vite-plugin-wasm';
 //依赖排除
 const external = [
     'silk-wasm',
@@ -21,6 +22,7 @@ if (process.env.NAPCAT_BUILDSYS == 'linux') {
 }
 
 const UniversalBaseConfigPlugin: PluginOption[] = [
+    wasm(),
     cp({
         targets: [
             { src: './manifest.json', dest: 'dist' },
@@ -44,6 +46,7 @@ const UniversalBaseConfigPlugin: PluginOption[] = [
 ];
 
 const FrameworkBaseConfigPlugin: PluginOption[] = [
+    wasm(),
     cp({
         targets: [
             { src: './manifest.json', dest: 'dist' },
@@ -63,6 +66,7 @@ const FrameworkBaseConfigPlugin: PluginOption[] = [
 ];
 
 const ShellBaseConfigPlugin: PluginOption[] = [
+    wasm(),
     cp({
         targets: [
             { src: './src/native/packet', dest: 'dist/moehoo', flatten: false },
