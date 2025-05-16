@@ -248,10 +248,10 @@ export class OneBotMsgApi {
             };
 
             // 创建回复数据的通用方法
-            const createReplyData = (msgId: string): OB11MessageData => ({
+            const createReplyData = (msgId: string, msgSeq: string): OB11MessageData => ({
                 type: OB11MessageDataType.reply,
                 data: {
-                    id: MessageUnique.getOutputData(peer, msgId, msg.msgSeq).toString(),
+                    id: MessageUnique.getOutputData(peer, msgId, msgSeq).toString(),
                 },
             });
 
@@ -260,7 +260,7 @@ export class OneBotMsgApi {
 
             // 特定账号的特殊处理
             if (records && (records.peerUin === '284840486' || records.peerUin === '1094950020')) {
-                return createReplyData(records.msgId);
+                return createReplyData(records.msgId, records.msgSeq);
             }
 
             // 获取消息的通用方法组
@@ -326,7 +326,7 @@ export class OneBotMsgApi {
                 );
 
                 if (replyMsg) {
-                    return createReplyData(replyMsg.msgId);
+                    return createReplyData(replyMsg.msgId, replyMsg.msgSeq);
                 }
 
                 this.core.context.logger.logError('所有查找方法均失败，获取不到带记录的引用消息', element.replayMsgSeq);
@@ -337,13 +337,13 @@ export class OneBotMsgApi {
                 const replyMsg = await tryFetchMethods(element.replayMsgSeq);
 
                 if (replyMsg) {
-                    return createReplyData(replyMsg.msgId);
+                    return createReplyData(replyMsg.msgId, replyMsg.msgSeq);
                 }
 
-                this.core.context.logger.logError('所有查找方法均失败，获取不到旧客户端的引用消息', element.replayMsgSeq);
+                //this.core.context.logger.logError('所有查找方法均失败，获取不到旧客户端的引用消息', element.replayMsgSeq);
             }
 
-            return null;
+            return createReplyData('-1', element.replayMsgSeq);
         },
         videoElement: async (element, msg, elementWrapper) => {
             const peer = {
