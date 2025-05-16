@@ -4,8 +4,6 @@ import { ActionName } from '@/onebot/action/router';
 import { ChatType, Peer } from '@/core/types';
 import { MessageUnique } from '@/common/message-unique';
 import { Static, Type } from '@sinclair/typebox';
-import { NetworkAdapterConfig } from '@/onebot/config/config';
-
 interface Response {
     messages: OB11Message[];
 }
@@ -25,7 +23,7 @@ export default class GoCQHTTPGetGroupMsgHistory extends OneBotAction<Payload, Re
     override actionName = ActionName.GoCQHTTP_GetGroupMsgHistory;
     override payloadSchema = SchemaData;
 
-    async _handle(payload: Payload, _adapter: string, config: NetworkAdapterConfig): Promise<Response> {
+    async _handle(payload: Payload, _adapter: string): Promise<Response> {
         const peer: Peer = { chatType: ChatType.KCHATTYPEGROUP, peerUid: payload.group_id.toString() };
         const hasMessageSeq = !payload.message_id ? !!payload.message_id : !(payload.message_id?.toString() === '' || payload.message_id?.toString() === '0');
         //拉取消息
@@ -39,7 +37,7 @@ export default class GoCQHTTPGetGroupMsgHistory extends OneBotAction<Payload, Re
         }));
         //烘焙消息
         const ob11MsgList = (await Promise.all(
-            msgList.map(msg => this.obContext.apis.MsgApi.parseMessage(msg, config.messagePostFormat)))
+            msgList.map(msg => this.obContext.apis.MsgApi.parseMessage(msg)))
         ).filter(msg => msg !== undefined);
         return { 'messages': ob11MsgList };
     }

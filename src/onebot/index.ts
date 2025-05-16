@@ -113,7 +113,7 @@ export class NapCatOneBot11Adapter {
 
         // 注册Plugin 如果需要基于NapCat进行快速开发
         this.networkManager.registerAdapter(
-            new OB11PluginAdapter('myPlugin', this.core, this,this.actions)
+            new OB11PluginAdapter('myPlugin', this.core, this, this.actions)
         );
         for (const key of ob11Config.network.httpServers) {
             if (key.enable) {
@@ -482,29 +482,20 @@ export class NapCatOneBot11Adapter {
     }
 
     private isSelfMessage(ob11Msg: {
-        stringMsg: OB11Message;
         arrayMsg: OB11Message;
     }): boolean {
-        return ob11Msg.stringMsg.user_id.toString() == this.core.selfInfo.uin ||
-            ob11Msg.arrayMsg.user_id.toString() == this.core.selfInfo.uin;
+        return ob11Msg.arrayMsg.user_id.toString() == this.core.selfInfo.uin;
     }
 
     private createMsgMap(network: Array<NetworkAdapterConfig>, ob11Msg: {
-        stringMsg: OB11Message;
         arrayMsg: OB11Message;
     }, isSelfMsg: boolean, message: RawMessage): Map<string, OB11Message> {
         const msgMap: Map<string, OB11Message> = new Map();
         network.filter(e => e.enable).forEach(e => {
             if (isSelfMsg || message.chatType !== ChatType.KCHATTYPEGROUP) {
-                ob11Msg.stringMsg.target_id = parseInt(message.peerUin);
-                ob11Msg.arrayMsg.target_id = parseInt(message.peerUin);
+                ob11Msg.arrayMsg.target_id = message.peerUin;
             }
-            if ('messagePostFormat' in e && e.messagePostFormat == 'string') {
-                msgMap.set(e.name, structuredClone(ob11Msg.stringMsg));
-            } else {
-                msgMap.set(e.name, structuredClone(ob11Msg.arrayMsg));
-            }
-
+            msgMap.set(e.name, structuredClone(ob11Msg.arrayMsg));
         });
         return msgMap;
     }

@@ -24,7 +24,7 @@ export default class GetFriendMsgHistory extends OneBotAction<Payload, Response>
     override actionName = ActionName.GetFriendMsgHistory;
     override payloadSchema = SchemaData;
 
-    async _handle(payload: Payload, _adapter: string, config: NetworkAdapterConfig): Promise<Response> {
+    async _handle(payload: Payload, _adapter: string, _config: NetworkAdapterConfig): Promise<Response> {
         //处理参数
         const uid = await this.core.apis.UserApi.getUidByUinV2(payload.user_id.toString());
         if (!uid) throw new Error(`记录${payload.user_id}不存在`);
@@ -41,7 +41,7 @@ export default class GetFriendMsgHistory extends OneBotAction<Payload, Response>
         }));
         //烘焙消息
         const ob11MsgList = (await Promise.all(
-            msgList.map(msg => this.obContext.apis.MsgApi.parseMessage(msg, config.messagePostFormat)))
+            msgList.map(msg => this.obContext.apis.MsgApi.parseMessage(msg)))
         ).filter(msg => msg !== undefined);
         return { 'messages': ob11MsgList };
     }

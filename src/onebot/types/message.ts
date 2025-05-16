@@ -13,7 +13,7 @@ export interface OB11Message {
     real_seq?: string;// 自行扩展
     temp_source?: number;
     message_sent_type?: string;
-    target_id?: number;  // 自己发送消息/私聊消息
+    target_id?: string;  // 自己发送消息/私聊消息
     self_id?: string;
     time: number;
     message_id: string;
@@ -23,7 +23,6 @@ export interface OB11Message {
     sub_type?: 'friend' | 'group' | 'normal';
     sender: OB11Sender;
     message: OB11MessageData[];
-    message_format: 'array' | 'string';
     font: number;
     post_type?: EventType;
     raw?: RawMessage;

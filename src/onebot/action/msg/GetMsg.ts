@@ -4,8 +4,6 @@ import { ActionName } from '@/onebot/action/router';
 import { MessageUnique } from '@/common/message-unique';
 import { RawMessage } from '@/core';
 import { Static, Type } from '@sinclair/typebox';
-import { NetworkAdapterConfig } from '@/onebot/config/config';
-
 export type ReturnDataType = OB11Message
 
 const SchemaData = Type.Object({
@@ -18,7 +16,7 @@ class GetMsg extends OneBotAction<Payload, OB11Message> {
     override actionName = ActionName.GetMsg;
     override payloadSchema = SchemaData;
 
-    async _handle(payload: Payload, _adapter: string, config: NetworkAdapterConfig) {
+    async _handle(payload: Payload, _adapter: string) {
         if (!payload.message_id) {
             throw Error('参数message_id不能为空');
         }
@@ -35,7 +33,7 @@ class GetMsg extends OneBotAction<Payload, OB11Message> {
             msg = (await this.core.apis.MsgApi.getMsgsByMsgId(peer, [msgIdWithPeer?.MsgId || payload.message_id.toString()])).msgList[0];
         }
         if (!msg) throw Error('消息不存在');
-        const retMsg = await this.obContext.apis.MsgApi.parseMessage(msg, config.messagePostFormat);
+        const retMsg = await this.obContext.apis.MsgApi.parseMessage(msg);
         if (!retMsg) throw Error('消息为空');
         try {
             retMsg.message_id = MessageUnique.getOutputData(peer, msg.msgId, msg.msgSeq)!;

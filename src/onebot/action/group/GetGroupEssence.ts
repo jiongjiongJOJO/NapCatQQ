@@ -4,8 +4,6 @@ import { ActionName } from '@/onebot/action/router';
 import { MessageUnique } from '@/common/message-unique';
 import crypto from 'crypto';
 import { Static, Type } from '@sinclair/typebox';
-import { NetworkAdapterConfig } from '@/onebot/config/config';
-
 const SchemaData = Type.Object({
     group_id: Type.String(),
 });
@@ -27,7 +25,7 @@ export class GetGroupEssence extends OneBotAction<Payload, unknown> {
         };
     }
 
-    async _handle(payload: Payload, _adapter: string, config: NetworkAdapterConfig) {
+    async _handle(payload: Payload, _adapter: string) {
         const msglist = (await this.core.apis.WebApi.getGroupEssenceMsgAll(payload.group_id.toString())).flatMap((e) => e.data.msg_list);
         if (!msglist) {
             throw new Error('获取失败');
@@ -48,7 +46,7 @@ export class GetGroupEssence extends OneBotAction<Payload, unknown> {
                     operator_nick: msg.add_digest_nick,
                     message_id: message_id,
                     operator_time: msg.add_digest_time,
-                    content: (await this.obContext.apis.MsgApi.parseMessage(rawMessage, config.messagePostFormat))?.message
+                    content: (await this.obContext.apis.MsgApi.parseMessage(rawMessage))?.message
                 };
             }
             const msgTempData = JSON.stringify({

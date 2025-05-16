@@ -899,19 +899,15 @@ export class OneBotMsgApi {
             msg.parentMsgIdList = parentMsgIdList;
             msg.id = MessageUnique.getOutputData(parentMsgPeer, msg.msgId, msg.msgSeq);
             //该ID仅用查看 无法调用
-            return await this.parseMessage(msg, 'array', true);
+            return await this.parseMessage(msg, true);
         }));
         return parsed.filter(item => item !== undefined);
     }
 
     async parseMessage(
         msg: RawMessage,
-        messagePostFormat: string,
         parseMultMsg: boolean = true
     ) {
-        if (messagePostFormat === 'string') {
-            return (await this.parseMessageV2(msg, parseMultMsg))?.stringMsg;
-        }
         return (await this.parseMessageV2(msg, parseMultMsg))?.arrayMsg;
     }
 
@@ -940,8 +936,7 @@ export class OneBotMsgApi {
 
         const validSegments = await this.parseMessageSegments(msg, parseMultMsg);
         resMsg.message = validSegments;
-        const stringMsg = await this.convertArrayToStringMessage(resMsg);
-        return { stringMsg, arrayMsg: resMsg };
+        return {  arrayMsg: resMsg };
     }
 
     private initializeMessage(msg: RawMessage): OB11Message {
@@ -960,7 +955,6 @@ export class OneBotMsgApi {
             font: 14,
             sub_type: 'friend',
             message: [],
-            message_format: 'array',
             post_type: this.core.selfInfo.uin == msg.senderUin ? EventType.MESSAGE_SENT : EventType.MESSAGE,
         };
     }
@@ -1040,17 +1034,7 @@ export class OneBotMsgApi {
         }).map((entry) => (<PromiseFulfilledResult<OB11MessageData>>entry).value).filter(value => value != null);
     }
 
-    private async convertArrayToStringMessage(originMsg: OB11Message): Promise<OB11Message> {
-        const msg = structuredClone(originMsg);
-        msg.message_format = 'string';
-        return msg;
-    }
 
-    async importArrayTostringMsg(originMsg: OB11Message) {
-        const msg = structuredClone(originMsg);
-        msg.message_format = 'string';
-        return msg;
-    }
 
     async createSendElements(
         messageData: OB11MessageData[],
