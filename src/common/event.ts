@@ -10,9 +10,9 @@ interface InternalMapKey {
     checker: ((...args: any[]) => boolean) | undefined;
 }
 
-type EnsureFunc<T> = T extends (...args: any) => any ? T : never;
+export type EnsureFunc<T> = T extends (...args: any) => any ? T : never;
 
-type FuncKeys<T> = Extract<
+export type FuncKeys<T> = Extract<
     {
         [K in keyof T]: EnsureFunc<T[K]> extends never ? never : K;
     }[keyof T],

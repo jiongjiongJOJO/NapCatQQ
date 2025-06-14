@@ -36,8 +36,10 @@ import type {
     NodeIKernelTicketService,
     NodeIKernelTipOffService,
 } from '.';
+import { NodeIKernelAlbumService } from './NodeIKernelAlbumService';
 
 export type ServiceNamingMapping = {
+    NodeIKernelAlbumService: NodeIKernelAlbumService;
     NodeIKernelAvatarService: NodeIKernelAvatarService;
     NodeIKernelBuddyService: NodeIKernelBuddyService;
     NodeIKernelFileAssistantService: NodeIKernelFileAssistantService;

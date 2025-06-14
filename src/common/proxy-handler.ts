@@ -20,3 +20,23 @@ export function proxyHandlerOf(logger: LogWrapper) {
 export function proxiedListenerOf<T extends object>(listener: T, logger: LogWrapper) {
     return new Proxy<T>(listener, proxyHandlerOf(logger));
 }
+
+export function proxyHandlerOfWithoutLogger() {
+    return {
+        get(target: any, prop: any, receiver: any) {
+            if (typeof target[prop] === 'undefined') {
+                // 如果方法不存在，返回一个函数，这个函数调用existentMethod
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                return (..._args: unknown[]) => {
+                    console.log(`${target.constructor.name} has no method ${prop}`);
+                };
+            }
+            // 如果方法存在，正常返回
+            return Reflect.get(target, prop, receiver);
+        },
+    };
+}
+
+export function proxiedListenerOfWithoutLogger<T extends object>(listener: T) {
+    return new Proxy<T>(listener, proxyHandlerOfWithoutLogger());
+}

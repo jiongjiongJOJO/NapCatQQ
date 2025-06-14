@@ -30,6 +30,7 @@ import os from 'node:os';
 import { NodeIKernelMsgListener, NodeIKernelProfileListener } from '@/core/listeners';
 import { proxiedListenerOf } from '@/common/proxy-handler';
 import { NTQQPacketApi } from './apis/packet';
+import { createVirtualServiceClient, handleServiceServerOnce } from '@/framework/proxy/service';
 export * from './wrapper';
 export * from './types';
 export * from './services';
@@ -99,7 +100,7 @@ export class NapCatCore {
         this.context = context;
         this.util = this.context.wrapper.NodeQQNTWrapperUtil;
         this.eventWrapper = new NTEventWrapper(context.session);
-        this.configLoader = new NapCatConfigLoader(this, this.context.pathWrapper.configPath,NapcatConfigSchema);
+        this.configLoader = new NapCatConfigLoader(this, this.context.pathWrapper.configPath, NapcatConfigSchema);
         this.apis = {
             FileApi: new NTQQFileApi(this.context, this),
             SystemApi: new NTQQSystemApi(this.context, this),
@@ -168,6 +169,13 @@ export class NapCatCore {
             proxiedListenerOf(msgListener, this.context.logger),
         );
 
+        let msgServiceClient = createVirtualServiceClient('NodeIKernelMsgService', async (ServiceCommand, ...args) => {
+            this.context.logger.log(`Client Outing->[${ServiceCommand}]`, ...args);
+            return handleServiceServerOnce(ServiceCommand, async (listenerCommand: string, ...args: any[]) => {
+                msgServiceClient.receiverListener(listenerCommand, ...args);
+            }, this.eventWrapper, ...args);
+        });
+        console.log('msgServiceClient', await msgServiceClient.object.fetchFavEmojiList('', 50, true, true));
         const profileListener = new NodeIKernelProfileListener();
         profileListener.onProfileDetailInfoChanged = (profile) => {
             if (profile.uid === this.selfInfo.uid) {
