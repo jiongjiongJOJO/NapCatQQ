@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include <cstdio>
 
 // Base64 编码表
 static const char *BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -137,11 +138,50 @@ bool is_buffer(napi_env env, napi_value val)
   return result;
 }
 
+bool is_uint8_array(napi_env env, napi_value val)
+{
+  napi_value global, uint8_array_constructor;
+  if (napi_get_global(env, &global) != napi_ok)
+    return false;
+  if (napi_get_named_property(env, global, "Uint8Array", &uint8_array_constructor) != napi_ok)
+    return false;
+
+  bool result = false;
+  napi_instanceof(env, val, uint8_array_constructor, &result);
+  return result;
+}
+
 bool is_array(napi_env env, napi_value val)
 {
   bool result = false;
   napi_is_array(env, val, &result);
   return result;
+}
+
+bool is_array_like(napi_env env, napi_value val)
+{
+  // 检查是否是数组
+  if (is_array(env, val))
+    return true;
+
+  // 检查是否有length属性且为数字
+  napi_valuetype type;
+  if (napi_typeof(env, val, &type) != napi_ok || type != napi_object)
+    return false;
+
+  bool has_length = false;
+  if (napi_has_named_property(env, val, "length", &has_length) != napi_ok || !has_length)
+    return false;
+
+  napi_value length_val;
+  if (napi_get_named_property(env, val, "length", &length_val) != napi_ok)
+    return false;
+
+  napi_valuetype length_type;
+  if (napi_typeof(env, length_val, &length_type) != napi_ok || length_type != napi_number)
+    return false;
+
+  return true;
 }
 
 bool is_map(napi_env env, napi_value val)
@@ -229,16 +269,32 @@ napi_value encode_map(napi_env env, napi_value map)
   return result;
 }
 
-// 编码数组类型
+// 编码数组或类数组类型
 napi_value encode_array(napi_env env, napi_value arr)
 {
   napi_value result = create_typed_object(env, "Array");
   if (!result)
     return nullptr;
 
-  uint32_t length;
-  if (napi_get_array_length(env, arr, &length) != napi_ok)
-    return nullptr;
+  uint32_t length = 0;
+
+  // 获取长度
+  if (is_array(env, arr))
+  {
+    if (napi_get_array_length(env, arr, &length) != napi_ok)
+      return nullptr;
+  }
+  else
+  {
+    // 类数组对象，获取length属性
+    napi_value length_val;
+    if (napi_get_named_property(env, arr, "length", &length_val) != napi_ok)
+      return nullptr;
+    double length_double;
+    if (napi_get_value_double(env, length_val, &length_double) != napi_ok)
+      return nullptr;
+    length = static_cast<uint32_t>(length_double);
+  }
 
   napi_value encoded_array;
   if (napi_create_array_with_length(env, length, &encoded_array) != napi_ok)
@@ -288,6 +344,11 @@ napi_value encode_object(napi_env env, napi_value obj)
 
     std::string key = get_string_value(env, prop_name);
     if (key.empty())
+      continue;
+
+    // 检查属性是否存在(hasOwnProperty)
+    bool has_own_property = false;
+    if (napi_has_own_property(env, obj, prop_name, &has_own_property) != napi_ok || !has_own_property)
       continue;
 
     napi_value prop_value;
@@ -354,13 +415,25 @@ napi_value encode_value(napi_env env, napi_value value)
 
   case napi_object:
   {
-    if (is_buffer(env, value))
+    if (is_buffer(env, value) || is_uint8_array(env, value))
     {
-      // 处理 Buffer
+      // 处理 Buffer 和 Uint8Array
       void *data;
       size_t length;
-      if (napi_get_buffer_info(env, value, &data, &length) != napi_ok)
-        return nullptr;
+
+      if (is_buffer(env, value))
+      {
+        if (napi_get_buffer_info(env, value, &data, &length) != napi_ok)
+          return nullptr;
+      }
+      else
+      {
+        // Uint8Array
+        napi_value buffer;
+        size_t byte_offset;
+        if (napi_get_typedarray_info(env, value, nullptr, &length, &data, &buffer, &byte_offset) != napi_ok)
+          return nullptr;
+      }
 
       std::string base64_str = base64_encode(static_cast<const unsigned char *>(data), length);
       napi_value result = create_typed_object(env, "Buffer");
@@ -377,7 +450,7 @@ napi_value encode_value(napi_env env, napi_value value)
       return encode_map(env, value);
     }
 
-    if (is_array(env, value))
+    if (is_array_like(env, value))
     {
       return encode_array(env, value);
     }
@@ -508,6 +581,11 @@ napi_value decode_value(napi_env env, napi_value obj)
       if (napi_get_named_property(env, value_obj, key.c_str(), &prop_value) != napi_ok)
         continue;
 
+      // 只有当值不是undefined时才设置属性
+      bool is_undefined_val = false;
+      if (napi_is_undefined(env, prop_value, &is_undefined_val) == napi_ok && is_undefined_val)
+        continue;
+
       napi_value decoded_value = decode_value(env, prop_value);
       if (decoded_value)
       {
@@ -564,13 +642,569 @@ napi_value decode_value(napi_env env, napi_value obj)
   return nullptr;
 }
 
-// 导出函数
-napi_value Encode(napi_env env, napi_value value)
+// 导出的 rpc_encode 函数
+napi_value rpc_encode(napi_env env, napi_callback_info info)
 {
-  return encode_value(env, value);
+  size_t argc = 1;
+  napi_value args[1];
+
+  if (napi_get_cb_info(env, info, &argc, args, nullptr, nullptr) != napi_ok)
+  {
+    napi_throw_error(env, nullptr, "Failed to get callback info");
+    return nullptr;
+  }
+
+  if (argc < 1)
+  {
+    napi_throw_error(env, nullptr, "Expected 1 argument");
+    return nullptr;
+  }
+
+  napi_value result = encode_value(env, args[0]);
+  if (!result)
+  {
+    napi_throw_error(env, nullptr, "Unsupported type");
+    return nullptr;
+  }
+
+  return result;
 }
 
-napi_value Decode(napi_env env, napi_value obj)
+// 导出的 rpc_decode 函数
+napi_value rpc_decode(napi_env env, napi_callback_info info)
 {
-  return decode_value(env, obj);
+  size_t argc = 1;
+  napi_value args[1];
+
+  if (napi_get_cb_info(env, info, &argc, args, nullptr, nullptr) != napi_ok)
+  {
+    napi_throw_error(env, nullptr, "Failed to get callback info");
+    return nullptr;
+  }
+
+  if (argc < 1)
+  {
+    napi_throw_error(env, nullptr, "Expected 1 argument");
+    return nullptr;
+  }
+
+  napi_value result = decode_value(env, args[0]);
+  if (!result)
+  {
+    napi_throw_error(env, nullptr, "Invalid encoded object");
+    return nullptr;
+  }
+
+  return result;
+}
+
+// JSON字符串转义
+std::string escape_json_string(const std::string &str)
+{
+  std::string result;
+  result.reserve(str.size() * 2); // 预分配足够空间
+
+  for (char c : str)
+  {
+    switch (c)
+    {
+    case '"':
+      result += "\\\"";
+      break;
+    case '\\':
+      result += "\\\\";
+      break;
+    case '\b':
+      result += "\\b";
+      break;
+    case '\f':
+      result += "\\f";
+      break;
+    case '\n':
+      result += "\\n";
+      break;
+    case '\r':
+      result += "\\r";
+      break;
+    case '\t':
+      result += "\\t";
+      break;
+    default:
+      if (c >= 0 && c < 32)
+      {
+        // 控制字符用Unicode转义
+        char buffer[8];
+        snprintf(buffer, sizeof(buffer), "\\u%04x", static_cast<unsigned char>(c));
+        result += buffer;
+      }
+      else
+      {
+        result += c;
+      }
+      break;
+    }
+  }
+  return result;
+}
+
+// 将napi_value转换为JSON字符串
+std::string value_to_json(napi_env env, napi_value value)
+{
+  napi_valuetype type;
+  if (napi_typeof(env, value, &type) != napi_ok)
+  {
+    return "null";
+  }
+
+  // 检查null
+  bool is_null_val = false;
+  if (napi_is_null(env, value, &is_null_val) == napi_ok && is_null_val)
+  {
+    return "null";
+  }
+
+  // 检查undefined
+  bool is_undefined_val = false;
+  if (napi_is_undefined(env, value, &is_undefined_val) == napi_ok && is_undefined_val)
+  {
+    return "null"; // JSON中没有undefined，用null代替
+  }
+
+  switch (type)
+  {
+  case napi_boolean:
+  {
+    bool bool_val;
+    if (napi_get_value_bool(env, value, &bool_val) == napi_ok)
+    {
+      return bool_val ? "true" : "false";
+    }
+    return "null";
+  }
+
+  case napi_number:
+  {
+    double num_val;
+    if (napi_get_value_double(env, value, &num_val) == napi_ok)
+    {
+      // 检查是否为整数
+      if (num_val == static_cast<int64_t>(num_val))
+      {
+        return std::to_string(static_cast<int64_t>(num_val));
+      }
+      else
+      {
+        return std::to_string(num_val);
+      }
+    }
+    return "null";
+  }
+
+  case napi_string:
+  {
+    std::string str_val = get_string_value(env, value);
+    return "\"" + escape_json_string(str_val) + "\"";
+  }
+
+  case napi_object:
+  {
+    // 检查是否为数组
+    if (is_array(env, value))
+    {
+      std::string result = "[";
+      uint32_t length;
+      if (napi_get_array_length(env, value, &length) == napi_ok)
+      {
+        for (uint32_t i = 0; i < length; i++)
+        {
+          if (i > 0)
+            result += ",";
+          napi_value element;
+          if (napi_get_element(env, value, i, &element) == napi_ok)
+          {
+            result += value_to_json(env, element);
+          }
+          else
+          {
+            result += "null";
+          }
+        }
+      }
+      result += "]";
+      return result;
+    }
+
+    // 处理普通对象
+    std::string result = "{";
+    napi_value prop_names;
+    if (napi_get_property_names(env, value, &prop_names) == napi_ok)
+    {
+      uint32_t prop_count;
+      if (napi_get_array_length(env, prop_names, &prop_count) == napi_ok)
+      {
+        bool first = true;
+        for (uint32_t i = 0; i < prop_count; i++)
+        {
+          napi_value prop_name;
+          if (napi_get_element(env, prop_names, i, &prop_name) == napi_ok)
+          {
+            std::string key = get_string_value(env, prop_name);
+            if (!key.empty())
+            {
+              napi_value prop_value;
+              if (napi_get_named_property(env, value, key.c_str(), &prop_value) == napi_ok)
+              {
+                if (!first)
+                  result += ",";
+                first = false;
+                result += "\"" + escape_json_string(key) + "\":" + value_to_json(env, prop_value);
+              }
+            }
+          }
+        }
+      }
+    }
+    result += "}";
+    return result;
+  }
+
+  default:
+    return "null";
+  }
+}
+
+// JSON解析辅助函数
+class JSONParser
+{
+private:
+  const char *json;
+  size_t pos;
+  size_t len;
+
+  void skip_whitespace()
+  {
+    while (pos < len && (json[pos] == ' ' || json[pos] == '\t' ||
+                         json[pos] == '\n' || json[pos] == '\r'))
+    {
+      pos++;
+    }
+  }
+
+  bool match_string(const char *str)
+  {
+    size_t str_len = strlen(str);
+    if (pos + str_len > len)
+      return false;
+
+    for (size_t i = 0; i < str_len; i++)
+    {
+      if (json[pos + i] != str[i])
+        return false;
+    }
+    pos += str_len;
+    return true;
+  }
+
+  std::string parse_string()
+  {
+    if (pos >= len || json[pos] != '"')
+      return "";
+    pos++; // skip opening quote
+
+    std::string result;
+    while (pos < len && json[pos] != '"')
+    {
+      if (json[pos] == '\\' && pos + 1 < len)
+      {
+        pos++;
+        switch (json[pos])
+        {
+        case '"':
+          result += '"';
+          break;
+        case '\\':
+          result += '\\';
+          break;
+        case '/':
+          result += '/';
+          break;
+        case 'b':
+          result += '\b';
+          break;
+        case 'f':
+          result += '\f';
+          break;
+        case 'n':
+          result += '\n';
+          break;
+        case 'r':
+          result += '\r';
+          break;
+        case 't':
+          result += '\t';
+          break;
+        case 'u':
+          if (pos + 4 < len)
+          {
+            // 简单的Unicode处理，这里只处理基本的ASCII范围
+            char hex_str[5] = {0};
+            memcpy(hex_str, json + pos + 1, 4);
+            unsigned int code_point = strtoul(hex_str, nullptr, 16);
+            if (code_point <= 0x7F)
+            {
+              result += static_cast<char>(code_point);
+            }
+            pos += 4;
+          }
+          break;
+        default:
+          result += json[pos];
+          break;
+        }
+      }
+      else
+      {
+        result += json[pos];
+      }
+      pos++;
+    }
+
+    if (pos < len && json[pos] == '"')
+    {
+      pos++; // skip closing quote
+    }
+    return result;
+  }
+
+  double parse_number()
+  {
+    size_t start = pos;
+
+    // 处理负号
+    if (pos < len && json[pos] == '-')
+    {
+      pos++;
+    }
+
+    // 处理整数部分
+    if (pos < len && json[pos] == '0')
+    {
+      pos++;
+    }
+    else if (pos < len && json[pos] >= '1' && json[pos] <= '9')
+    {
+      while (pos < len && json[pos] >= '0' && json[pos] <= '9')
+      {
+        pos++;
+      }
+    }
+
+    // 处理小数部分
+    if (pos < len && json[pos] == '.')
+    {
+      pos++;
+      while (pos < len && json[pos] >= '0' && json[pos] <= '9')
+      {
+        pos++;
+      }
+    }
+
+    // 处理指数部分
+    if (pos < len && (json[pos] == 'e' || json[pos] == 'E'))
+    {
+      pos++;
+      if (pos < len && (json[pos] == '+' || json[pos] == '-'))
+      {
+        pos++;
+      }
+      while (pos < len && json[pos] >= '0' && json[pos] <= '9')
+      {
+        pos++;
+      }
+    }
+
+    std::string num_str(json + start, pos - start);
+    return strtod(num_str.c_str(), nullptr);
+  }
+
+public:
+  JSONParser(const char *json_str) : json(json_str), pos(0)
+  {
+    len = strlen(json_str);
+  }
+
+  napi_value parse_value(napi_env env)
+  {
+    skip_whitespace();
+
+    if (pos >= len)
+      return nullptr;
+
+    char c = json[pos];
+
+    // null
+    if (c == 'n' && match_string("null"))
+    {
+      napi_value result;
+      napi_get_null(env, &result);
+      return result;
+    }
+
+    // true
+    if (c == 't' && match_string("true"))
+    {
+      napi_value result;
+      napi_get_boolean(env, true, &result);
+      return result;
+    }
+
+    // false
+    if (c == 'f' && match_string("false"))
+    {
+      napi_value result;
+      napi_get_boolean(env, false, &result);
+      return result;
+    }
+
+    // string
+    if (c == '"')
+    {
+      std::string str = parse_string();
+      return create_string(env, str);
+    }
+
+    // number
+    if (c == '-' || (c >= '0' && c <= '9'))
+    {
+      double num = parse_number();
+      napi_value result;
+      napi_create_double(env, num, &result);
+      return result;
+    }
+
+    // array
+    if (c == '[')
+    {
+      pos++; // skip '['
+      skip_whitespace();
+
+      napi_value array;
+      if (napi_create_array(env, &array) != napi_ok)
+      {
+        return nullptr;
+      }
+
+      uint32_t index = 0;
+
+      // 处理空数组
+      if (pos < len && json[pos] == ']')
+      {
+        pos++;
+        return array;
+      }
+
+      while (pos < len)
+      {
+        napi_value element = parse_value(env);
+        if (element)
+        {
+          napi_set_element(env, array, index++, element);
+        }
+
+        skip_whitespace();
+        if (pos < len && json[pos] == ',')
+        {
+          pos++; // skip ','
+          skip_whitespace();
+        }
+        else if (pos < len && json[pos] == ']')
+        {
+          pos++; // skip ']'
+          break;
+        }
+        else
+        {
+          break; // 格式错误
+        }
+      }
+
+      return array;
+    }
+
+    // object
+    if (c == '{')
+    {
+      pos++; // skip '{'
+      skip_whitespace();
+
+      napi_value obj;
+      if (napi_create_object(env, &obj) != napi_ok)
+      {
+        return nullptr;
+      }
+
+      // 处理空对象
+      if (pos < len && json[pos] == '}')
+      {
+        pos++;
+        return obj;
+      }
+
+      while (pos < len)
+      {
+        skip_whitespace();
+
+        // 解析键
+        if (pos >= len || json[pos] != '"')
+          break;
+        std::string key = parse_string();
+        if (key.empty())
+          break;
+
+        skip_whitespace();
+        if (pos >= len || json[pos] != ':')
+          break;
+        pos++; // skip ':'
+
+        // 解析值
+        napi_value value = parse_value(env);
+        if (value)
+        {
+          napi_set_named_property(env, obj, key.c_str(), value);
+        }
+
+        skip_whitespace();
+        if (pos < len && json[pos] == ',')
+        {
+          pos++; // skip ','
+          skip_whitespace();
+        }
+        else if (pos < len && json[pos] == '}')
+        {
+          pos++; // skip '}'
+          break;
+        }
+        else
+        {
+          break; // 格式错误
+        }
+      }
+
+      return obj;
+    }
+
+    return nullptr;
+  }
+};
+
+// 将JSON字符串转换为napi_value
+napi_value json_to_value(napi_env env, const std::string &json_str)
+{
+  if (json_str.empty())
+  {
+    return nullptr;
+  }
+
+  JSONParser parser(json_str.c_str());
+  return parser.parse_value(env);
 }

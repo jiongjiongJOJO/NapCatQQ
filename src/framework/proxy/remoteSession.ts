@@ -1,7 +1,4 @@
-import { NTEventWrapper } from "@/common/event";
 import { createRemoteServiceClient } from "@/framework/proxy/service";
-import { handleServiceServerOnce } from "@/framework/proxy/service";
-import { ServiceMethodCommand } from "@/framework/proxy/service";
 import {
     NodeIQQNTWrapperSession,
     WrapperSessionInitConfig
@@ -11,57 +8,46 @@ import {
     NodeIDependsAdapter,
     NodeIDispatcherAdapter
 } from "../../core/adapters";
-import { rpc_decode, rpc_encode } from "./serialize";
+import { ServiceNamingMapping } from "@/core";
 
 class RemoteServiceManager {
     private services: Map<string, any> = new Map();
-    private eventWrapper: NTEventWrapper;
+    private handler;
 
-    constructor(eventWrapper: NTEventWrapper) {
-        this.eventWrapper = eventWrapper;
+    constructor(handler: (client: any, listenerCommand: string, ...args: any[]) => Promise<any>) {
+        this.handler = handler;
     }
-    private createRemoteService<T extends keyof import("@/core/services").ServiceNamingMapping>(
+    private createRemoteService<T extends keyof ServiceNamingMapping>(
         serviceName: T
-    ): import("@/core/services").ServiceNamingMapping[T] {
+    ): ServiceNamingMapping[T] {
         if (this.services.has(serviceName)) {
             return this.services.get(serviceName);
         }
 
-        const serviceClient = createRemoteServiceClient(serviceName, async (serviceCommand, ...args) => {
-            const call_dto = rpc_encode({ command: serviceCommand, params: args });
-            const call_data = rpc_decode<{ command: ServiceMethodCommand; params: any[] }>(call_dto);
-
-            return handleServiceServerOnce(
-                call_data.command,
-                async (listenerCommand: string, ...args: any[]) => {
-                    const listener_dto = rpc_encode({ command: listenerCommand, params: args });
-                    const listener_data = rpc_decode<{ command: string; params: any[] }>(listener_dto);
-                    serviceClient.receiverListener(listener_data.command, ...listener_data.params);
-                },
-                this.eventWrapper,
-                ...call_data.params
-            );
+        let serviceClient: any;
+        serviceClient = createRemoteServiceClient(serviceName, async (serviceCommand, ...args) => {
+            return await this.handler(serviceClient, serviceCommand, ...args);
         });
 
         this.services.set(serviceName, serviceClient.object);
         return serviceClient.object;
     }
 
-    getService<T extends keyof import("@/core/services").ServiceNamingMapping>(
+    getService<T extends keyof ServiceNamingMapping>(
         serviceName: T
-    ): import("@/core/services").ServiceNamingMapping[T] {
+    ): ServiceNamingMapping[T] {
         return this.createRemoteService(serviceName);
     }
 }
 export class RemoteWrapperSession implements NodeIQQNTWrapperSession {
     private serviceManager: RemoteServiceManager;
 
-    constructor(eventWrapper: NTEventWrapper) {
-        this.serviceManager = new RemoteServiceManager(eventWrapper);
+    constructor(handler: (client: { object: keyof ServiceNamingMapping, receiverListener: (command: string, ...args: any[]) => void }, listenerCommand: string, ...args: any[]) => Promise<void>) {
+        this.serviceManager = new RemoteServiceManager(handler);
     }
 
-    create(): NodeIQQNTWrapperSession {
-        return new RemoteWrapperSession(this.serviceManager['eventWrapper']);
+    create(): RemoteWrapperSession {
+        return this;
     }
 
     init(
@@ -121,6 +107,6 @@ export class RemoteWrapperSession implements NodeIQQNTWrapperSession {
     getConfigMgrService() { return null; }
 }
 
-export function createRemoteSession(eventWrapper: NTEventWrapper): NodeIQQNTWrapperSession {
-    return new RemoteWrapperSession(eventWrapper) as NodeIQQNTWrapperSession;
+export function createRemoteSession(handler: (client: { object: keyof ServiceNamingMapping, receiverListener: (command: string, ...args: any[]) => void }, listenerCommand: string, ...args: any[]) => Promise<void>): NodeIQQNTWrapperSession {
+    return new RemoteWrapperSession(handler) as NodeIQQNTWrapperSession;
 }

@@ -31,6 +31,8 @@ import { NodeIKernelMsgListener, NodeIKernelProfileListener } from '@/core/liste
 import { proxiedListenerOf } from '@/common/proxy-handler';
 import { NTQQPacketApi } from './apis/packet';
 import { createRemoteSession } from '../framework/proxy/remoteSession';
+import { handleServiceServerOnce, ServiceMethodCommand } from '@/framework/proxy/service';
+import { rpc_decode, rpc_encode } from '@/framework/proxy/serialize';
 export * from './wrapper';
 export * from './types';
 export * from './services';
@@ -101,7 +103,25 @@ export class NapCatCore {
 
         this.util = this.context.wrapper.NodeQQNTWrapperUtil;
         this.eventWrapper = new NTEventWrapper(context.session);
-        this.context.session = createRemoteSession(this.eventWrapper);
+
+        this.context.session = createRemoteSession(async (serviceClient, serviceCommand, ...args) => {
+            // 模拟远程服务调用
+            const call_dto = rpc_encode({ command: serviceCommand, params: args });
+            // 得到远程服务调用的命令和参数
+            const call_data = rpc_decode<{ command: ServiceMethodCommand; params: any[] }>(call_dto);
+            // 处理并回应结果
+            return await handleServiceServerOnce(
+                call_data.command,
+                async (listenerCommand: string, ...args: any[]) => {
+                    const listener_dto = rpc_encode({ command: listenerCommand, params: args });
+                    const listener_data = rpc_decode<{ command: string; params: any[] }>(listener_dto);
+                    serviceClient.receiverListener(listener_data.command, ...listener_data.params);
+                },
+                this.eventWrapper,
+                ...call_data.params
+            );
+        });
+
         this.configLoader = new NapCatConfigLoader(this, this.context.pathWrapper.configPath, NapcatConfigSchema);
         this.apis = {
             FileApi: new NTQQFileApi(this.context, this),
