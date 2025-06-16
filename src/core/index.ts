@@ -30,7 +30,7 @@ import os from 'node:os';
 import { NodeIKernelMsgListener, NodeIKernelProfileListener } from '@/core/listeners';
 import { proxiedListenerOf } from '@/common/proxy-handler';
 import { NTQQPacketApi } from './apis/packet';
-import { createVirtualSession } from './virtualsession';
+import { createVirtualSession } from '../framework/proxy/virtualSession';
 export * from './wrapper';
 export * from './types';
 export * from './services';

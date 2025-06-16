@@ -5,12 +5,12 @@ import { ServiceMethodCommand } from "@/framework/proxy/service";
 import {
     NodeIQQNTWrapperSession,
     WrapperSessionInitConfig
-} from "./wrapper";
-import { NodeIKernelSessionListener } from "./listeners/NodeIKernelSessionListener";
+} from "../../core/wrapper";
+import { NodeIKernelSessionListener } from "../../core/listeners/NodeIKernelSessionListener";
 import {
     NodeIDependsAdapter,
     NodeIDispatcherAdapter
-} from "./adapters";
+} from "../../core/adapters";
 import superjson from "superjson";
 
 class VirtualServiceManager {
@@ -20,10 +20,6 @@ class VirtualServiceManager {
     constructor(eventWrapper: NTEventWrapper) {
         this.eventWrapper = eventWrapper;
     }
-
-    /**
-     * 创建虚拟服务实例
-     */
     private createVirtualService<T extends keyof import("@/core/services").ServiceNamingMapping>(
         serviceName: T
     ): import("@/core/services").ServiceNamingMapping[T] {
@@ -51,9 +47,6 @@ class VirtualServiceManager {
         return serviceClient.object;
     }
 
-    /**
-     * 获取或创建服务实例
-     */
     getService<T extends keyof import("@/core/services").ServiceNamingMapping>(
         serviceName: T
     ): import("@/core/services").ServiceNamingMapping[T] {
