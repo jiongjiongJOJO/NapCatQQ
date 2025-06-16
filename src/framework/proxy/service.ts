@@ -5,14 +5,13 @@ export type ServiceMethodCommand = {
     [Service in keyof ServiceNamingMapping]: `${Service}/${FuncKeys<ServiceNamingMapping[Service]>}`
 }[keyof ServiceNamingMapping];
 
-// 使用正则表达式匹配监听器注册命令
 const LISTENER_COMMAND_PATTERN = /\/addKernel\w*Listener$/;
 
 function isListenerCommand(command: ServiceMethodCommand): boolean {
     return LISTENER_COMMAND_PATTERN.test(command);
 }
 
-export function createVirtualServiceServer<T extends keyof ServiceNamingMapping>(
+export function createRemoteServiceServer<T extends keyof ServiceNamingMapping>(
     serviceName: T,
     ntevent: NTEventWrapper,
     callback: (command: ServiceMethodCommand, ...args: any[]) => Promise<any>
@@ -63,7 +62,7 @@ export async function handleServiceServerOnce(
     return await (ntevent.callNoListenerEvent as (command: ServiceMethodCommand, ...args: any[]) => Promise<any>)(command, ...args);
 }
 
-export function createVirtualServiceClient<T extends keyof ServiceNamingMapping>(
+export function createRemoteServiceClient<T extends keyof ServiceNamingMapping>(
     serviceName: T,
     receiverEvent: (command: ServiceMethodCommand, ...args: any[]) => Promise<any>
 ) {

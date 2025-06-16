@@ -1,5 +1,5 @@
 import { NTEventWrapper } from "@/common/event";
-import { createVirtualServiceClient } from "@/framework/proxy/service";
+import { createRemoteServiceClient } from "@/framework/proxy/service";
 import { handleServiceServerOnce } from "@/framework/proxy/service";
 import { ServiceMethodCommand } from "@/framework/proxy/service";
 import {
@@ -13,21 +13,21 @@ import {
 } from "../../core/adapters";
 import superjson from "superjson";
 
-class VirtualServiceManager {
+class RemoteServiceManager {
     private services: Map<string, any> = new Map();
     private eventWrapper: NTEventWrapper;
 
     constructor(eventWrapper: NTEventWrapper) {
         this.eventWrapper = eventWrapper;
     }
-    private createVirtualService<T extends keyof import("@/core/services").ServiceNamingMapping>(
+    private createRemoteService<T extends keyof import("@/core/services").ServiceNamingMapping>(
         serviceName: T
     ): import("@/core/services").ServiceNamingMapping[T] {
         if (this.services.has(serviceName)) {
             return this.services.get(serviceName);
         }
 
-        const serviceClient = createVirtualServiceClient(serviceName, async (serviceCommand, ...args) => {
+        const serviceClient = createRemoteServiceClient(serviceName, async (serviceCommand, ...args) => {
             const call_dto = superjson.stringify({ command: serviceCommand, params: args });
             const call_data = superjson.parse<{ command: ServiceMethodCommand; params: any[] }>(call_dto);
 
@@ -50,23 +50,18 @@ class VirtualServiceManager {
     getService<T extends keyof import("@/core/services").ServiceNamingMapping>(
         serviceName: T
     ): import("@/core/services").ServiceNamingMapping[T] {
-        return this.createVirtualService(serviceName);
+        return this.createRemoteService(serviceName);
     }
 }
-
-/**
- *
- * NodeIQQNTWrapperSession 的行为
- */
-export class VirtualWrapperSession implements NodeIQQNTWrapperSession {
-    private serviceManager: VirtualServiceManager;
+export class RemoteWrapperSession implements NodeIQQNTWrapperSession {
+    private serviceManager: RemoteServiceManager;
 
     constructor(eventWrapper: NTEventWrapper) {
-        this.serviceManager = new VirtualServiceManager(eventWrapper);
+        this.serviceManager = new RemoteServiceManager(eventWrapper);
     }
 
     create(): NodeIQQNTWrapperSession {
-        return new VirtualWrapperSession(this.serviceManager['eventWrapper']);
+        return new RemoteWrapperSession(this.serviceManager['eventWrapper']);
     }
 
     init(
@@ -126,11 +121,6 @@ export class VirtualWrapperSession implements NodeIQQNTWrapperSession {
     getConfigMgrService() { return null; }
 }
 
-/**
- * 创建完全虚拟的QQ NT会话
- * @param eventWrapper 事件包装器
- * @returns 虚拟会话实例
- */
-export function createVirtualSession(eventWrapper: NTEventWrapper): NodeIQQNTWrapperSession {
-    return new VirtualWrapperSession(eventWrapper) as NodeIQQNTWrapperSession;
+export function createRemoteSession(eventWrapper: NTEventWrapper): NodeIQQNTWrapperSession {
+    return new RemoteWrapperSession(eventWrapper) as NodeIQQNTWrapperSession;
 }
