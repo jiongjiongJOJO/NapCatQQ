@@ -30,7 +30,7 @@ import os from 'node:os';
 import { NodeIKernelMsgListener, NodeIKernelProfileListener } from '@/core/listeners';
 import { proxiedListenerOf } from '@/common/proxy-handler';
 import { NTQQPacketApi } from './apis/packet';
-import { createVirtualSession } from '../framework/proxy/virtualSession';
+import { createRemoteSession } from '../framework/proxy/remoteSession';
 export * from './wrapper';
 export * from './types';
 export * from './services';
@@ -101,7 +101,7 @@ export class NapCatCore {
 
         this.util = this.context.wrapper.NodeQQNTWrapperUtil;
         this.eventWrapper = new NTEventWrapper(context.session);
-        this.context.session = createVirtualSession(this.eventWrapper);
+        this.context.session = createRemoteSession(this.eventWrapper);
         this.configLoader = new NapCatConfigLoader(this, this.context.pathWrapper.configPath, NapcatConfigSchema);
         this.apis = {
             FileApi: new NTQQFileApi(this.context, this),

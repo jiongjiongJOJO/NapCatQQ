@@ -36,8 +36,10 @@ export function createRemoteServiceServer<T extends keyof ServiceNamingMapping>(
     });
 }
 
-// 问题2: 全局状态管理可能导致内存泄漏和状态污染
+
+// 避免重复远程注册 多份传输会消耗很大
 export const listenerCmdRegisted = new Map<ServiceMethodCommand, boolean>();
+// 已经注册的Listener实例托管
 export const clientCallback = new Map<string, (...args: any[]) => Promise<any>>();
 export async function handleServiceServerOnce(
     command: ServiceMethodCommand,// 服务注册命令
