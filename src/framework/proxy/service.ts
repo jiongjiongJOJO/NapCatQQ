@@ -1,17 +1,16 @@
 import { FuncKeys, NTEventWrapper } from "@/common/event";
 import { ServiceNamingMapping } from "@/core";
 
-type ServiceMethodCommand = {
+export type ServiceMethodCommand = {
     [Service in keyof ServiceNamingMapping]: `${Service}/${FuncKeys<ServiceNamingMapping[Service]>}`
 }[keyof ServiceNamingMapping];
 
-export const RegisterListenerCmd: Array<ServiceMethodCommand> = [
-    'NodeIKernelMsgService/addKernelMsgListener',
-    'NodeIKernelGroupService/addKernelGroupListener',
-    'NodeIKernelProfileLikeService/addKernelProfileLikeListener',
-    'NodeIKernelProfileService/addKernelProfileListener',
-    'NodeIKernelBuddyService/addKernelBuddyListener',
-];
+// 使用正则表达式匹配监听器注册命令
+const LISTENER_COMMAND_PATTERN = /\/addKernel\w*Listener$/;
+
+function isListenerCommand(command: ServiceMethodCommand): boolean {
+    return LISTENER_COMMAND_PATTERN.test(command);
+}
 
 export function createVirtualServiceServer<T extends keyof ServiceNamingMapping>(
     serviceName: T,
@@ -21,7 +20,7 @@ export function createVirtualServiceServer<T extends keyof ServiceNamingMapping>
     return new Proxy(() => { }, {
         get: (_target: any, functionName: string) => {
             const command = `${serviceName}/${functionName}` as ServiceMethodCommand;
-            if (RegisterListenerCmd.includes(command as ServiceMethodCommand)) {
+            if (isListenerCommand(command)) {
                 return async (..._args: any[]) => {
                     const listener = new Proxy(new class { }(), {
                         apply: (_target, _thisArg, _arguments) => {
@@ -40,14 +39,14 @@ export function createVirtualServiceServer<T extends keyof ServiceNamingMapping>
 
 // 问题2: 全局状态管理可能导致内存泄漏和状态污染
 export const listenerCmdRegisted = new Map<ServiceMethodCommand, boolean>();
-export const clientCallback = new Map<string, (command: string, ...args: any[]) => Promise<any>>();
+export const clientCallback = new Map<string, (...args: any[]) => Promise<any>>();
 export async function handleServiceServerOnce(
     command: ServiceMethodCommand,// 服务注册命令
     recvListener: (command: string, ...args: any[]) => Promise<any>,//listener监听器
     ntevent: NTEventWrapper,// 事件处理器
     ...args: any[]//实际参数
 ) {
-    if (RegisterListenerCmd.includes(command)) {
+    if (isListenerCommand(command)) {
         if (!listenerCmdRegisted.has(command)) {
             listenerCmdRegisted.set(command, true);
             return (ntevent.callNoListenerEvent as any)(command, new Proxy(new class { }(), {
@@ -61,8 +60,6 @@ export async function handleServiceServerOnce(
         }
         return 0;
     }
-    console.log('handleServiceServerOnce', command, 'args', args);
-    console.log('params', args);
     return await (ntevent.callNoListenerEvent as (command: ServiceMethodCommand, ...args: any[]) => Promise<any>)(command, ...args);
 }
 
@@ -73,7 +70,7 @@ export function createVirtualServiceClient<T extends keyof ServiceNamingMapping>
     const object = new Proxy(() => { }, {
         get: (_target: any, functionName: string) => {
             const command = `${serviceName}/${functionName}` as ServiceMethodCommand;
-            if (RegisterListenerCmd.includes(command as ServiceMethodCommand)) {
+            if (isListenerCommand(command)) {
                 if (!clientCallback.has(command)) {
                     return async (listener: Record<string, any>) => {
                         // 遍历 listener
@@ -94,12 +91,15 @@ export function createVirtualServiceClient<T extends keyof ServiceNamingMapping>
     });
 
     const receiverListener = function (command: string, ...args: any[]) {
-        return clientCallback.get(command)?.(command, ...args);
+        if (command.indexOf('onRecvMsg') !== - 1 || command.indexOf('onRecvSysMsg') !== -1) {
+            console.log(`Received command: ${command}, with args: ${JSON.stringify(args)}`);
+        }
+        return clientCallback.get(command)?.(...args);
     };
     return { receiverListener: receiverListener, object: object as ServiceNamingMapping[T] };
 }
 
-// 建议添加清理函数
+
 export function clearServiceState() {
     listenerCmdRegisted.clear();
     clientCallback.clear();

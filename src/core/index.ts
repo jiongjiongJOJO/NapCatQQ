@@ -30,7 +30,7 @@ import os from 'node:os';
 import { NodeIKernelMsgListener, NodeIKernelProfileListener } from '@/core/listeners';
 import { proxiedListenerOf } from '@/common/proxy-handler';
 import { NTQQPacketApi } from './apis/packet';
-import { createVirtualServiceClient, handleServiceServerOnce } from '@/framework/proxy/service';
+import { createVirtualSession } from './virtualsession';
 export * from './wrapper';
 export * from './types';
 export * from './services';
@@ -98,8 +98,10 @@ export class NapCatCore {
     constructor(context: InstanceContext, selfInfo: SelfInfo) {
         this.selfInfo = selfInfo;
         this.context = context;
+
         this.util = this.context.wrapper.NodeQQNTWrapperUtil;
         this.eventWrapper = new NTEventWrapper(context.session);
+        this.context.session = createVirtualSession(this.eventWrapper);
         this.configLoader = new NapCatConfigLoader(this, this.context.pathWrapper.configPath, NapcatConfigSchema);
         this.apis = {
             FileApi: new NTQQFileApi(this.context, this),
@@ -169,13 +171,6 @@ export class NapCatCore {
             proxiedListenerOf(msgListener, this.context.logger),
         );
 
-        let msgServiceClient = createVirtualServiceClient('NodeIKernelMsgService', async (ServiceCommand, ...args) => {
-            this.context.logger.log(`Client Outing->[${ServiceCommand}]`, ...args);
-            return handleServiceServerOnce(ServiceCommand, async (listenerCommand: string, ...args: any[]) => {
-                msgServiceClient.receiverListener(listenerCommand, ...args);
-            }, this.eventWrapper, ...args);
-        });
-        console.log('msgServiceClient', await msgServiceClient.object.fetchFavEmojiList('', 50, true, true));
         const profileListener = new NodeIKernelProfileListener();
         profileListener.onProfileDetailInfoChanged = (profile) => {
             if (profile.uid === this.selfInfo.uid) {
@@ -259,13 +254,13 @@ export async function genSessionConfig(
 }
 
 export interface InstanceContext {
-    readonly workingEnv: NapCatCoreWorkingEnv;
-    readonly wrapper: WrapperNodeApi;
-    readonly session: NodeIQQNTWrapperSession;
-    readonly logger: LogWrapper;
-    readonly loginService: NodeIKernelLoginService;
-    readonly basicInfoWrapper: QQBasicInfoWrapper;
-    readonly pathWrapper: NapCatPathWrapper;
+    session: NodeIQQNTWrapperSession;
+    workingEnv: NapCatCoreWorkingEnv;
+    wrapper: WrapperNodeApi;
+    logger: LogWrapper;
+    loginService: NodeIKernelLoginService;
+    basicInfoWrapper: QQBasicInfoWrapper;
+    pathWrapper: NapCatPathWrapper;
 }
 
 export interface StableNTApiWrapper {

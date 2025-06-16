@@ -16,6 +16,16 @@ export * from './NodeIKernelDbToolsService';
 export * from './NodeIKernelTipOffService';
 export * from './NodeIKernelSearchService';
 export * from './NodeIKernelCollectionService';
+export * from './NodeIKernelAlbumService';
+export * from './NodeIKernelECDHService';
+export * from './NodeIKernelNodeMiscService';
+export * from './NodeIKernelMsgBackupService';
+export * from './NodeIKernelTianShuService';
+export * from './NodeIKernelUnitedConfigService';
+export * from './NodeIkernelTestPerformanceService';
+export * from './NodeIKernelUixConvertService';
+export * from './NodeIKernelMSFService';
+export * from './NodeIKernelRecentContactService';
 
 import type {
     NodeIKernelAvatarService,
@@ -37,6 +47,15 @@ import type {
     NodeIKernelTipOffService,
 } from '.';
 import { NodeIKernelAlbumService } from './NodeIKernelAlbumService';
+import { NodeIKernelECDHService } from './NodeIKernelECDHService';
+import { NodeIKernelNodeMiscService } from './NodeIKernelNodeMiscService';
+import { NodeIKernelMsgBackupService } from './NodeIKernelMsgBackupService';
+import { NodeIKernelTianShuService } from './NodeIKernelTianShuService';
+import { NodeIKernelUnitedConfigService } from './NodeIKernelUnitedConfigService';
+import { NodeIkernelTestPerformanceService } from './NodeIkernelTestPerformanceService';
+import { NodeIKernelUixConvertService } from './NodeIKernelUixConvertService';
+import { NodeIKernelMSFService } from './NodeIKernelMSFService';
+import { NodeIKernelRecentContactService } from './NodeIKernelRecentContactService';
 
 export type ServiceNamingMapping = {
     NodeIKernelAlbumService: NodeIKernelAlbumService;
@@ -55,6 +74,15 @@ export type ServiceNamingMapping = {
     NodeIKernelRichMediaService: NodeIKernelRichMediaService;
     NodeIKernelDbToolsService: NodeIKernelDbToolsService;
     NodeIKernelTipOffService: NodeIKernelTipOffService;
-    NodeIKernelSearchService: NodeIKernelSearchService,
+    NodeIKernelSearchService: NodeIKernelSearchService;
     NodeIKernelCollectionService: NodeIKernelCollectionService;
+    NodeIKernelECDHService: NodeIKernelECDHService;
+    NodeIKernelNodeMiscService: NodeIKernelNodeMiscService;
+    NodeIKernelMsgBackupService: NodeIKernelMsgBackupService;
+    NodeIKernelTianShuService: NodeIKernelTianShuService;
+    NodeIKernelUnitedConfigService: NodeIKernelUnitedConfigService;
+    NodeIkernelTestPerformanceService: NodeIkernelTestPerformanceService;
+    NodeIKernelUixConvertService: NodeIKernelUixConvertService;
+    NodeIKernelMSFService: NodeIKernelMSFService;
+    NodeIKernelRecentContactService: NodeIKernelRecentContactService;
 };
