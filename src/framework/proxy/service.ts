@@ -40,7 +40,7 @@ export function createRemoteServiceServer<T extends keyof ServiceNamingMapping>(
 // 避免重复远程注册 多份传输会消耗很大
 export const listenerCmdRegisted = new Map<ServiceMethodCommand, boolean>();
 // 已经注册的Listener实例托管
-export const clientCallback = new Map<string, (...args: any[]) => Promise<any>>();
+export const clientCallback = new Map<string, Array<(...args: any[]) => Promise<any>>>();
 export async function handleServiceServerOnce(
     command: ServiceMethodCommand,// 服务注册命令
     recvListener: (command: string, ...args: any[]) => Promise<any>,//listener监听器
@@ -72,18 +72,19 @@ export function createRemoteServiceClient<T extends keyof ServiceNamingMapping>(
         get: (_target: any, functionName: string) => {
             const command = `${serviceName}/${functionName}` as ServiceMethodCommand;
             if (isListenerCommand(command)) {
-                if (!clientCallback.has(command)) {
-                    return async (listener: Record<string, any>) => {
-                        // 遍历 listener
-                        for (const key in listener) {
-                            if (typeof listener[key] === 'function') {
-                                const listenerCmd = `${command.split('/')[0]}/${key}`;
-                                clientCallback.set(listenerCmd, listener[key].bind(listener));
+                return async (listener: Record<string, any>) => {
+                    for (const key in listener) {
+                        if (typeof listener[key] === 'function') {
+                            const listenerCmd = `${command.split('/')[0]}/${key}`;
+                            if (!clientCallback.has(listenerCmd)) {
+                                clientCallback.set(listenerCmd, [listener[key].bind(listener)]);
+                            } else {
+                                clientCallback.get(listenerCmd)?.push(listener[key].bind(listener));
                             }
                         }
-                        return await receiverEvent(command);
-                    };
-                }
+                    }
+                    return await receiverEvent(command);
+                };
             }
             return async (...args: any[]) => {
                 return await receiverEvent(command, ...args);
@@ -91,8 +92,8 @@ export function createRemoteServiceClient<T extends keyof ServiceNamingMapping>(
         }
     });
 
-    const receiverListener = function (command: string, ...args: any[]) {
-        return clientCallback.get(command)?.(...args);
+    const receiverListener = async function (command: string, ...args: any[]) {
+        return clientCallback.get(command)?.forEach(async (callback) => await callback(...args));
     };
     return { receiverListener: receiverListener, object: object as ServiceNamingMapping[T] };
 }
