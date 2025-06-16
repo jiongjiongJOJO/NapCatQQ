@@ -11,7 +11,7 @@ import {
     NodeIDependsAdapter,
     NodeIDispatcherAdapter
 } from "../../core/adapters";
-import superjson from "superjson";
+import { rpc_decode, rpc_encode } from "./serialize";
 
 class RemoteServiceManager {
     private services: Map<string, any> = new Map();
@@ -28,14 +28,14 @@ class RemoteServiceManager {
         }
 
         const serviceClient = createRemoteServiceClient(serviceName, async (serviceCommand, ...args) => {
-            const call_dto = superjson.stringify({ command: serviceCommand, params: args });
-            const call_data = superjson.parse<{ command: ServiceMethodCommand; params: any[] }>(call_dto);
+            const call_dto = rpc_encode({ command: serviceCommand, params: args });
+            const call_data = rpc_decode<{ command: ServiceMethodCommand; params: any[] }>(call_dto);
 
             return handleServiceServerOnce(
                 call_data.command,
                 async (listenerCommand: string, ...args: any[]) => {
-                    const listener_dto = superjson.stringify({ command: listenerCommand, params: args });
-                    const listener_data = superjson.parse<{ command: string; params: any[] }>(listener_dto);
+                    const listener_dto = rpc_encode({ command: listenerCommand, params: args });
+                    const listener_data = rpc_decode<{ command: string; params: any[] }>(listener_dto);
                     serviceClient.receiverListener(listener_data.command, ...listener_data.params);
                 },
                 this.eventWrapper,

@@ -92,9 +92,6 @@ export function createRemoteServiceClient<T extends keyof ServiceNamingMapping>(
     });
 
     const receiverListener = function (command: string, ...args: any[]) {
-        if (command.indexOf('onRecvMsg') !== - 1 || command.indexOf('onRecvSysMsg') !== -1) {
-            console.log(`Received command: ${command}, with args: ${JSON.stringify(args)}`);
-        }
         return clientCallback.get(command)?.(...args);
     };
     return { receiverListener: receiverListener, object: object as ServiceNamingMapping[T] };
