@@ -158,7 +158,7 @@ class PacketManager {
             }
 
             const dataLength = header.readUInt32BE(4);
-            const version = header.readUInt32BE(8);
+            //const version = header.readUInt32BE(8);
 
             // 基本验证
             if (dataLength <= 0 || dataLength > MAX_PACKET_SIZE - HEADER_SIZE) {
