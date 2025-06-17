@@ -30,9 +30,10 @@ import os from 'node:os';
 import { NodeIKernelMsgListener, NodeIKernelProfileListener } from '@/core/listeners';
 import { proxiedListenerOf } from '@/common/proxy-handler';
 import { NTQQPacketApi } from './apis/packet';
-import { createRemoteSession } from '../framework/proxy/remoteSession';
-import { handleServiceServerOnce, ServiceMethodCommand } from '@/framework/proxy/service';
+import { handleServiceServerOnce, receiverServiceListener, ServiceMethodCommand } from '@/framework/proxy/service';
 import { rpc_decode, rpc_encode } from '@/framework/proxy/serialize';
+import { PipeClient, PipeServer } from '@/framework/proxy/pipe';
+import { RemoteWrapperSession } from '@/framework/proxy/remoteSession';
 export * from './wrapper';
 export * from './types';
 export * from './services';
@@ -104,23 +105,57 @@ export class NapCatCore {
         this.util = this.context.wrapper.NodeQQNTWrapperUtil;
         this.eventWrapper = new NTEventWrapper(context.session);
 
-        this.context.session = createRemoteSession(async (serviceClient, serviceCommand, ...args) => {
-            // 模拟远程服务调用
-            const call_dto = rpc_encode({ command: serviceCommand, params: args });
-            // 得到远程服务调用的命令和参数
-            const call_data = rpc_decode<{ command: ServiceMethodCommand; params: any[] }>(call_dto);
-            // 处理并回应结果
-            return await handleServiceServerOnce(
-                call_data.command,
+        // 管道服务端测试
+        let pipe_server = new PipeServer('//./pipe/napcat');
+        pipe_server.registerHandler(async (packet, helper) => {
+            if (packet.type !== 'event_request') {
+                return helper.error('Invalid packet type');
+            }
+            let event_rpc_data = rpc_decode<{ params: any[] }>(JSON.parse(packet.data));
+            let event_rpc_trace = packet.trace;
+            let event_rpc_command = packet.command as ServiceMethodCommand;
+            let event_rpc_result = await handleServiceServerOnce(event_rpc_command,
                 async (listenerCommand: string, ...args: any[]) => {
-                    const listener_dto = rpc_encode({ command: listenerCommand, params: args });
-                    const listener_data = rpc_decode<{ command: string; params: any[] }>(listener_dto);
-                    serviceClient.receiverListener(listener_data.command, ...listener_data.params);
+                    let listener_data = rpc_encode<{ params: any[] }>({ params: args });
+                    helper.sendListenerCallback(listenerCommand, JSON.stringify(rpc_encode(listener_data)));
                 },
                 this.eventWrapper,
-                ...call_data.params
+                ...event_rpc_data.params
             );
+            return helper.sendEventResponse(event_rpc_trace, JSON.stringify(rpc_encode(event_rpc_result)));
         });
+        pipe_server.start().then(() => {
+            this.context.logger.log('Pipe server started successfully');
+            let pipe_client = new PipeClient('//./pipe/napcat');
+            let trace_callback_map = new Map<string, (trace: string, data: any) => void>();
+            pipe_client.registerHandler(async (packet, _helper) => {
+                if (packet.type == 'event_response') {
+                    let event_rpc_data = rpc_decode<Array<any>>(JSON.parse(packet.data));
+                    trace_callback_map.get(packet.trace)?.(packet.trace, event_rpc_data);
+                } else if (packet.type == 'listener_callback') {
+                    let event_rpc_data = rpc_decode<Array<any>>(JSON.parse(packet.data));
+                    await receiverServiceListener(packet.command, ...event_rpc_data);
+                }
+            });
+            this.context.session = new RemoteWrapperSession(async (_serviceClient, serviceCommand, ...args) => {
+                let trace = crypto.randomUUID();
+                return await new Promise((resolve, _reject) => {
+                    trace_callback_map.set(trace, (_trace, data) => {
+                        //console.log('Received response for trace:', _trace, 'with data:', data);
+                        resolve(data);
+                    });
+                    pipe_client.sendRequest(serviceCommand, JSON.stringify(rpc_encode({ params: args })), trace);
+                });
+            });
+            pipe_client.connect().then(() => {
+                this.context.logger.log('Pipe client connected successfully');
+            }).catch((e) => {
+                this.context.logger.logError('Pipe client connection failed: ' + e.message);
+            });
+        }).catch((e) => {
+            this.context.logger.logError('Pipe server start failed: ' + e.message);
+        });
+
 
         this.configLoader = new NapCatConfigLoader(this, this.context.pathWrapper.configPath, NapcatConfigSchema);
         this.apis = {

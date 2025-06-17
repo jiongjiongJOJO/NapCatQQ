@@ -41,6 +41,7 @@ export function createRemoteServiceServer<T extends keyof ServiceNamingMapping>(
 export const listenerCmdRegisted = new Map<ServiceMethodCommand, boolean>();
 // 已经注册的Listener实例托管
 export const clientCallback = new Map<string, Array<(...args: any[]) => Promise<any>>>();
+
 export async function handleServiceServerOnce(
     command: ServiceMethodCommand,// 服务注册命令
     recvListener: (command: string, ...args: any[]) => Promise<any>,//listener监听器
@@ -97,7 +98,15 @@ export function createRemoteServiceClient<T extends keyof ServiceNamingMapping>(
     };
     return { receiverListener: receiverListener, object: object as ServiceNamingMapping[T] };
 }
-
+export async function receiverServiceListener(
+    command: string,
+    ...args: any[]
+) {
+    if (clientCallback.has(command)) {
+        return clientCallback.get(command)?.forEach(async (callback) => await callback(...args));
+    }
+    return 0;
+}
 
 export function clearServiceState() {
     listenerCmdRegisted.clear();

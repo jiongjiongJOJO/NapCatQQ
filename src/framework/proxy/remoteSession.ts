@@ -38,6 +38,7 @@ class RemoteServiceManager {
     ): ServiceNamingMapping[T] {
         return this.createRemoteService(serviceName);
     }
+
 }
 export class RemoteWrapperSession implements NodeIQQNTWrapperSession {
     private serviceManager: RemoteServiceManager;
@@ -105,8 +106,4 @@ export class RemoteWrapperSession implements NodeIQQNTWrapperSession {
     getAVSDKService() { return null; }
     getRecentContactService() { return this.serviceManager.getService('NodeIKernelRecentContactService'); }
     getConfigMgrService() { return null; }
-}
-
-export function createRemoteSession(handler: (client: { object: keyof ServiceNamingMapping, receiverListener: (command: string, ...args: any[]) => void }, listenerCommand: string, ...args: any[]) => Promise<void>): NodeIQQNTWrapperSession {
-    return new RemoteWrapperSession(handler) as NodeIQQNTWrapperSession;
 }
