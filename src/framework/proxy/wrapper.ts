@@ -1,5 +1,7 @@
 import { NodeIKernelLoginService, NodeIQQNTWrapperEngine, NodeIQQNTWrapperSession, NodeQQNTWrapperUtil, WrapperNodeApi } from "@/core";
 import { NodeIO3MiscService } from "@/core/services/NodeIO3MiscService";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
 
 export const LocalVirtualWrapper: WrapperNodeApi = {
     NodeIO3MiscService: {
@@ -11,7 +13,8 @@ export const LocalVirtualWrapper: WrapperNodeApi = {
     NodeQQNTWrapperUtil: {
         get: () => LocalVirtualWrapper.NodeQQNTWrapperUtil,
         getNTUserDataInfoConfig: function (): string {
-            throw new Error("Function not implemented.");
+            let current_path = dirname(fileURLToPath(import.meta.url));
+            return current_path;
         }
     } as NodeQQNTWrapperUtil,
     NodeIQQNTWrapperSession: {} as NodeIQQNTWrapperSession,
