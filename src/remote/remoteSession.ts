@@ -1,13 +1,13 @@
-import { createRemoteServiceClient } from "@/framework/proxy/service";
+import { createRemoteServiceClient } from "@/remote/service";
 import {
     NodeIQQNTWrapperSession,
     WrapperSessionInitConfig
-} from "../../core/wrapper";
-import { NodeIKernelSessionListener } from "../../core/listeners/NodeIKernelSessionListener";
+} from "../core/wrapper";
+import { NodeIKernelSessionListener } from "../core/listeners/NodeIKernelSessionListener";
 import {
     NodeIDependsAdapter,
     NodeIDispatcherAdapter
-} from "../../core/adapters";
+} from "../core/adapters";
 import { ServiceNamingMapping } from "@/core";
 
 class RemoteServiceManager {
